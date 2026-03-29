@@ -20,7 +20,7 @@
     "stability": 0.35,
     "similarityBoost": 0.75,
     "style": 0.4,
-    "speed": 0.95,
+    "speed": 1.15,
     "useSpeakerBoost": true
   },
   "script": {
@@ -31,6 +31,7 @@
       "./gcse-spec.txt",
       "./ozymandias.txt"
     ],
+    "durationMinutes": 8,
     "phoneticsOverrides": {
       "Ozymandias": "Ozzy-man-dee-us",
       "Bysshe": "Bish",
