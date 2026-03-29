@@ -127,7 +127,7 @@ async function generateWithLibreOffice(
   }
 
   if (pngFiles.length !== expectedCount) {
-    warn(
+    throw new Error(
       `LibreOffice produced ${pngFiles.length} images, expected ${expectedCount}`,
     );
   }
