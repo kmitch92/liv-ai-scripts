@@ -1,8 +1,9 @@
 import path from "node:path";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, writeFile, copyFile, access } from "node:fs/promises";
 import sharp from "sharp";
 import type { Slide } from "../types/index.js";
 import { startStep, succeedStep, failStep, warn } from "../lib/logger.js";
+import { sanitizeTopic } from "../lib/sanitize-topic.js";
 
 interface ImageFetchOptions {
   slides: Slide[];
@@ -13,6 +14,11 @@ interface ImageFetchOptions {
     background: string;
     text: string;
   };
+  topic: string;
+}
+
+function getOutputImagesDir(topic: string): string {
+  return path.resolve("output", sanitizeTopic(topic), "images");
 }
 
 const IMAGE_WIDTH = 1280;
@@ -60,17 +66,33 @@ export async function fetchImages(
       const outputPath = path.join(imagesDir, `slide-${index}.jpg`);
       paths[index] = outputPath;
 
+      const cachedImagesDir = getOutputImagesDir(options.topic);
+      await mkdir(cachedImagesDir, { recursive: true });
+      const cachedPath = path.join(cachedImagesDir, `slide-${index}.jpg`);
+
+      // Check cache first
+      let usedCache = false;
       try {
-        const imageBuffer = await fetchUnsplashImage(slide.imageQuery);
-        await sharp(imageBuffer)
-          .resize(IMAGE_WIDTH, IMAGE_HEIGHT, { fit: "cover" })
-          .jpeg({ quality: 85 })
-          .toFile(outputPath);
+        await access(cachedPath);
+        await copyFile(cachedPath, outputPath);
+        usedCache = true;
       } catch {
-        warn(
-          `Unsplash fetch failed for slide ${index} ("${slide.imageQuery}"), using placeholder`,
-        );
-        await generatePlaceholder(outputPath, brandColors.secondary);
+        // No cache, fetch from Unsplash
+      }
+
+      if (!usedCache) {
+        try {
+          const imageBuffer = await fetchUnsplashImage(slide.imageQuery);
+          await sharp(imageBuffer)
+            .resize(IMAGE_WIDTH, IMAGE_HEIGHT, { fit: "cover" })
+            .jpeg({ quality: 85 })
+            .toFile(outputPath);
+          // Persist to cache
+          await copyFile(outputPath, cachedPath);
+        } catch (err) {
+          warn(`Image fetch failed for slide ${index} ("${slide.imageQuery}"), using placeholder`);
+          await generatePlaceholder(outputPath, brandColors.secondary);
+        }
       }
 
       completed++;
