@@ -7,6 +7,7 @@ import { generateScript } from "./steps/02-script-generate.js";
 import { fetchImages } from "./steps/03-image-fetch.js";
 import { phoneticsPass } from "./steps/02b-phonetics-pass.js";
 import { generateTts } from "./steps/04-tts-generate.js";
+import { designSlideContent } from "./steps/04b-slide-content-design.js";
 import { generatePptx } from "./steps/05-pptx-generate.js";
 import { assembleVideo } from "./steps/06-video-assemble.js";
 import { createArchive } from "./steps/07-archive.js";
@@ -52,7 +53,7 @@ export async function runPipeline(options: PipelineOptions): Promise<string> {
     // 2b. Phonetics pass for TTS
     let ttsPresentation: Presentation;
     try {
-      ttsPresentation = await phoneticsPass(presentation);
+      ttsPresentation = await phoneticsPass(presentation, config.script.phoneticsOverrides ?? {});
     } catch {
       logger.warn("Phonetics pass failed, using original narration for TTS");
       ttsPresentation = presentation;
@@ -65,6 +66,7 @@ export async function runPipeline(options: PipelineOptions): Promise<string> {
         slides: presentation.slides,
         tempDir,
         brandColors: config.branding.colors,
+        topic: args.topic,
       });
     } catch (err) {
       logger.failStep("Image fetching failed");
@@ -87,11 +89,20 @@ export async function runPipeline(options: PipelineOptions): Promise<string> {
       throw err;
     }
 
+    // 4b. Design slide visual content
+    let pptxPresentation: Presentation;
+    try {
+      pptxPresentation = await designSlideContent(presentation, contextText);
+    } catch {
+      logger.warn("Slide content design failed, using original content");
+      pptxPresentation = presentation;
+    }
+
     // 5. Generate PPTX
     let pptxPath: string;
     try {
       pptxPath = await generatePptx({
-        presentation,
+        presentation: pptxPresentation,
         imagePaths,
         config,
         tempDir,
