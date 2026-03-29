@@ -96,7 +96,10 @@ async function synthesizeSpeech(
       voice_settings: {
         stability: config.stability,
         similarity_boost: config.similarityBoost,
+        style: config.style,
+        use_speaker_boost: config.useSpeakerBoost,
       },
+      ...(config.speed !== 1 ? { speed: config.speed } : {}),
     }),
   });
 
