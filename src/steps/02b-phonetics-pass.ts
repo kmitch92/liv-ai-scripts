@@ -10,19 +10,52 @@ Rules:
 - DO NOT modify slideTitle, bulletPoints, imageQuery, durationSeconds, title, or totalDurationSeconds
 - Replace words that TTS commonly mispronounces: proper nouns, foreign words, archaic English, technical terms, unusual place names
 - Use simple phonetic English spelling that reads naturally: "Ozymandias" → "Ozzy-man-dee-us", "Bysshe" → "Bish", "visage" → "vizahj", "Ramesses" → "Ram-eh-seez", "trunkless" → "trunk-less"
+- IMPORTANT: Natural utterance duration matters as much as correct pronunciation. Phonetic respellings must take roughly the same time to say as the original word. Avoid adding unnecessary syllables or hyphens that stretch the word out. For example, "Ozzy-man-dee-us" is 5 syllables for a 5-syllable word — good. But spelling out every vowel sound explicitly (e.g. "Oh-zee-man-dee-ah-ss") adds length and sounds unnatural. Prefer compact respellings: use the fewest syllables that still achieve correct pronunciation. If the original word is short and punchy, the respelling must be too.
 - Keep common English words unchanged — only replace words likely to trip up TTS
 - Maintain the same sentence structure and meaning
 - Output ONLY valid JSON matching the exact same schema as the input. No markdown fencing, no commentary.`;
 
+function applyOverrides(
+  presentation: Presentation,
+  overrides: Record<string, string>,
+): Presentation {
+  const entries = Object.entries(overrides);
+  if (entries.length === 0) return presentation;
+
+  return {
+    ...presentation,
+    slides: presentation.slides.map((slide) => {
+      let narration = slide.narration;
+      for (const [word, replacement] of entries) {
+        const pattern = new RegExp(
+          `\\b${word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`,
+          "gi",
+        );
+        narration = narration.replace(pattern, replacement);
+      }
+      return { ...slide, narration };
+    }),
+  };
+}
+
 export async function phoneticsPass(
   presentation: Presentation,
+  overrides: Record<string, string>,
 ): Promise<Presentation> {
   logger.startStep("Running phonetics pass for TTS...");
+
+  const overrideCount = Object.keys(overrides).length;
+  if (overrideCount > 0) {
+    logger.info(`Applying ${overrideCount} phonetic overrides`);
+  }
+
+  // Apply overrides BEFORE the LLM pass
+  const preOverridden = applyOverrides(presentation, overrides);
 
   const messages: ChatMessage[] = [
     {
       role: "user",
-      content: `Process the following presentation JSON. Replace difficult words in narration fields with phonetic spellings for TTS. Return the modified JSON only.\n\n${JSON.stringify(presentation, null, 2)}`,
+      content: `Process the following presentation JSON. Replace difficult words in narration fields with phonetic spellings for TTS. Return the modified JSON only.\n\n${JSON.stringify(preOverridden, null, 2)}`,
     },
   ];
 
@@ -36,8 +69,10 @@ export async function phoneticsPass(
     try {
       const parsed: unknown = JSON.parse(jsonStr);
       const result = PresentationSchema.parse(parsed);
+      // Apply overrides AFTER the LLM pass to catch any reverted words
+      const postOverridden = applyOverrides(result, overrides);
       logger.succeedStep("Phonetics pass complete");
-      return result;
+      return postOverridden;
     } catch {
       if (attempt === 0) {
         logger.warn("Phonetics pass: parse failed, retrying...");
