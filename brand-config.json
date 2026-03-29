@@ -1,0 +1,28 @@
+{
+  "branding": {
+    "logo": "logo.jpeg",
+    "assetsDir": "./assets",
+    "colors": {
+      "primary": "#1B4F72",
+      "secondary": "#D4E6F1",
+      "background": "#FFFFFF",
+      "text": "#1A1A1A"
+    },
+    "fonts": {
+      "heading": "Arial",
+      "body": "Calibri"
+    }
+  },
+  "elevenlabs": {
+    "voiceId": "W0lp8rqoWgwKp8rOz1dH",
+    "modelId": "eleven_multilingual_v2",
+    "stability": 0.5,
+    "similarityBoost": 0.75
+  },
+  "script": {
+    "speakerIdentity": "an expert GCSE English Literature teacher with 15 years of classroom experience",
+    "targetAudience": "GCSE students aged 14-16 studying English Literature",
+    "systemPrompt": "Create engaging, age-appropriate lesson content. Use conversational language as if speaking directly to students in a classroom. Use 'you', 'we', 'let's' language. Avoid dry textbook tone.",
+    "contextFiles": ["./gcse-spec.txt", "./ozymandias.txt"]
+  }
+}
