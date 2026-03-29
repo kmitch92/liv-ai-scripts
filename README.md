@@ -78,18 +78,22 @@ npx tsx src/index.ts \
 }
 ```
 
-## Output archive contents
+## Output structure
 
 ```
-<topic>-<timestamp>.zip
-├── presentation.pptx     # Branded PowerPoint
-├── video.mp4             # Presentation video with narration
-├── script.json           # Structured script data (per-slide)
-├── script.txt            # Human-readable script
-└── audio/
-    ├── slide-01.mp3
-    ├── slide-02.mp3
-    └── ...
+output/
+  <topic>/
+    images/                 # Cached Unsplash images (shared across runs)
+    <timestamp>/
+      <topic>.zip
+        ├── presentation.pptx     # Branded PowerPoint
+        ├── video.mp4             # Presentation video with narration
+        ├── script.json           # Structured script data (per-slide)
+        ├── script.txt            # Human-readable script
+        └── audio/
+            ├── slide-0.mp3
+            ├── slide-1.mp3
+            └── ...
 ```
 
 ## Pipeline overview
