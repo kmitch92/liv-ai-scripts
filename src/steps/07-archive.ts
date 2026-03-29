@@ -4,6 +4,7 @@ import { mkdir } from "node:fs/promises";
 import archiver from "archiver";
 import type { Presentation } from "../types/index.js";
 import { startStep, succeedStep } from "../lib/logger.js";
+import { sanitizeTopic } from "../lib/sanitize-topic.js";
 
 interface ArchiveOptions {
   presentation: Presentation;
@@ -73,10 +74,7 @@ function formatPresentationText(presentation: Presentation): string {
 }
 
 function buildDefaultOutputPath(topic: string): string {
-  const sanitized = topic
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
+  const sanitized = sanitizeTopic(topic);
 
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -90,5 +88,5 @@ function buildDefaultOutputPath(topic: string): string {
     pad(now.getSeconds()),
   ].join("");
 
-  return path.resolve("output", `${sanitized}-${timestamp}.zip`);
+  return path.resolve("output", sanitized, timestamp, `${sanitized}.zip`);
 }
