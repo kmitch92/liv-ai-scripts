@@ -15,12 +15,12 @@
     }
   },
   "elevenlabs": {
-    "voiceId": "W0lp8rqoWgwKp8rOz1dH",
+    "voiceId": "PGXUlrgi0Tgxv5ovt9ip",
     "modelId": "eleven_multilingual_v2",
-    "stability": 0.35,
-    "similarityBoost": 0.75,
-    "style": 0.4,
-    "speed": 1.15,
+    "stability": 0.75,
+    "similarityBoost": 0.60,
+    "style": 0.22,
+    "speed": 0.95,
     "useSpeakerBoost": true
   },
   "script": {
@@ -32,10 +32,16 @@
       "./ozymandias.txt"
     ],
     "durationMinutes": 8,
-    "phoneticsOverrides": {
-      "Ozymandias": "Ozzy-man-dee-us",
-      "Bysshe": "Bish",
-      "Ramesses": "Ram-eh-seez"
-    }
+    "phoneticsOverrides": [
+      { "from": "Ozymandias", "to": "Ozzy-man-dee-us" },
+      { "from": "Bysshe", "to": "Bish" },
+      { "from": "Ramesses", "to": "Ram-eh-seez" }
+    ]
+  },
+  "pipeline": {
+    "useIterativeContent": false,
+    "enableCritic": false,
+    "enableDesignValidation": false,
+    "useTemplateEngine": false
   }
 }
