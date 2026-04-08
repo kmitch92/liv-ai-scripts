@@ -16,6 +16,11 @@ import {
   NarrationSectionSchema,
   NarrationScriptSchema,
 } from "../schemas/narration.schema.js";
+import {
+  CritiqueSchema,
+  CritiqueScoreSchema,
+  CritiqueSuggestionSchema,
+} from "../schemas/critique.schema.js";
 
 export type Config = z.infer<typeof ConfigSchema>;
 export type Slide = z.infer<typeof SlideSchema>;
@@ -28,6 +33,9 @@ export type TemplateLayout = z.infer<typeof TemplateLayoutSchema>;
 export type TemplateManifest = z.infer<typeof TemplateManifestSchema>;
 export type NarrationSection = z.infer<typeof NarrationSectionSchema>;
 export type NarrationScript = z.infer<typeof NarrationScriptSchema>;
+export type CritiqueScore = z.infer<typeof CritiqueScoreSchema>;
+export type CritiqueSuggestion = z.infer<typeof CritiqueSuggestionSchema>;
+export type Critique = z.infer<typeof CritiqueSchema>;
 
 /** Pipeline context passed between steps */
 export type PipelineContext = {
@@ -57,4 +65,7 @@ export {
   TemplateManifestSchema,
   NarrationSectionSchema,
   NarrationScriptSchema,
+  CritiqueSchema,
+  CritiqueScoreSchema,
+  CritiqueSuggestionSchema,
 };
