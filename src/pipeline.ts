@@ -5,7 +5,7 @@ import * as logger from "./lib/logger.js";
 import { extractContext } from "./steps/01-context-extract.js";
 import { generateScript } from "./steps/02-script-generate.js";
 import { fetchImages } from "./steps/03-image-fetch.js";
-import { phoneticsPass } from "./steps/02b-phonetics-pass.js";
+import { phoneticsPass } from "./steps/02c-phonetics-pass.js";
 import { generateTts } from "./steps/04-tts-generate.js";
 import { designSlideContent } from "./steps/04b-slide-content-design.js";
 import { generatePptx } from "./steps/05-pptx-generate.js";
@@ -53,7 +53,7 @@ export async function runPipeline(options: PipelineOptions): Promise<string> {
     // 2b. Phonetics pass for TTS
     let ttsPresentation: Presentation;
     try {
-      ttsPresentation = await phoneticsPass(presentation, config.script.phoneticsOverrides ?? {});
+      ttsPresentation = await phoneticsPass(presentation, config.script.phoneticsOverrides ?? []);
     } catch {
       logger.warn("Phonetics pass failed, using original narration for TTS");
       ttsPresentation = presentation;
