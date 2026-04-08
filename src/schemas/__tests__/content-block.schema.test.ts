@@ -109,7 +109,7 @@ describe("ContentBlockSchema", () => {
         text: "Remember this",
         style: "tip",
       });
-      expect(result.style).toBe("tip");
+      expect(result).toMatchObject({ type: "callout", style: "tip" });
     });
 
     it("parses valid callout with warning style", () => {
@@ -118,7 +118,7 @@ describe("ContentBlockSchema", () => {
         text: "Be careful",
         style: "warning",
       });
-      expect(result.style).toBe("warning");
+      expect(result).toMatchObject({ type: "callout", style: "warning" });
     });
 
     it("parses valid callout with exam-technique style", () => {
@@ -127,7 +127,7 @@ describe("ContentBlockSchema", () => {
         text: "Use PEE paragraphs",
         style: "exam-technique",
       });
-      expect(result.style).toBe("exam-technique");
+      expect(result).toMatchObject({ type: "callout", style: "exam-technique" });
     });
 
     it("rejects invalid style value", () => {
