@@ -12,6 +12,10 @@ import {
   TemplateLayoutSchema,
   TemplateManifestSchema,
 } from "../schemas/template-manifest.schema.js";
+import {
+  NarrationSectionSchema,
+  NarrationScriptSchema,
+} from "../schemas/narration.schema.js";
 
 export type Config = z.infer<typeof ConfigSchema>;
 export type Slide = z.infer<typeof SlideSchema>;
@@ -22,6 +26,8 @@ export type DesignMetadata = z.infer<typeof DesignMetadataSchema>;
 export type Placeholder = z.infer<typeof PlaceholderSchema>;
 export type TemplateLayout = z.infer<typeof TemplateLayoutSchema>;
 export type TemplateManifest = z.infer<typeof TemplateManifestSchema>;
+export type NarrationSection = z.infer<typeof NarrationSectionSchema>;
+export type NarrationScript = z.infer<typeof NarrationScriptSchema>;
 
 /** Pipeline context passed between steps */
 export type PipelineContext = {
@@ -49,4 +55,6 @@ export {
   PlaceholderSchema,
   TemplateLayoutSchema,
   TemplateManifestSchema,
+  NarrationSectionSchema,
+  NarrationScriptSchema,
 };
