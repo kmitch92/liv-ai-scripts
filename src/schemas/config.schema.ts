@@ -5,6 +5,7 @@ export const ConfigSchema = z.object({
     logo: z.string().describe("Path to logo image, relative to assetsDir"),
     assetsDir: z.string().describe("Base directory for brand assets"),
     templatePptx: z.string().optional().describe("Path to a template PPTX file"),
+    templateManifest: z.string().optional().describe("Path to template-manifest.json"),
     colors: z.object({
       primary: z.string(),
       secondary: z.string(),
@@ -30,7 +31,16 @@ export const ConfigSchema = z.object({
     targetAudience: z.string().describe("Who the presentation is for, e.g. 'GCSE students aged 14-16' or 'senior software engineers'"),
     systemPrompt: z.string().describe("Purpose/style of the presentation"),
     contextFiles: z.array(z.string()).default([]).describe("Paths to context files (PDF, txt, md) to include as reference material"),
-    phoneticsOverrides: z.record(z.string(), z.string()).default({}).describe("Manual word→phonetic mappings applied before and after the LLM phonetics pass"),
+    phoneticsOverrides: z.array(z.object({
+      from: z.string().describe("The original word to match"),
+      to: z.string().describe("The phonetic replacement"),
+    })).default([]).describe("Phonetic spelling overrides for TTS pronunciation"),
     durationMinutes: z.number().min(1).max(60).default(15),
   }),
+  pipeline: z.object({
+    useIterativeContent: z.boolean().default(false).describe("Enable iterative content refinement loop"),
+    enableCritic: z.boolean().default(false).describe("Enable AI critic pass on generated content"),
+    enableDesignValidation: z.boolean().default(false).describe("Enable design constraint validation"),
+    useTemplateEngine: z.boolean().default(false).describe("Use template manifest for slide layout selection"),
+  }).default({}),
 });
