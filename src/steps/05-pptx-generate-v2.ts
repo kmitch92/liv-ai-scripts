@@ -1,7 +1,7 @@
 import { dirname, join, basename } from "node:path";
 import { access } from "node:fs/promises";
 import PptxAutomizer from "pptx-automizer";
-import type { ISlide, XmlDocument, ShapeModificationCallback } from "pptx-automizer";
+import type { ISlide, ShapeModificationCallback } from "pptx-automizer";
 import type {
   Config,
   Presentation,
@@ -336,15 +336,6 @@ export async function generatePptxV2(
           }
         }
       }
-
-      // Speaker notes via slide.modify() callback
-      addedSlide.modify(async (document: XmlDocument) => {
-        try {
-          addSpeakerNotes(document, slideData.narration);
-        } catch {
-          // Speaker notes injection not supported or failed — skip silently
-        }
-      });
     });
   }
 
@@ -360,37 +351,4 @@ export async function generatePptxV2(
   const outputPath = join(tempDir, outputFilename);
   logger.succeedStep(`PPTX generated: ${outputPath}`);
   return outputPath;
-}
-
-/**
- * Inject speaker notes into a slide's XML document.
- *
- * PPTX slides store notes in a related notesSlide XML part.
- * This is a best-effort approach — if the template slide already has a notes
- * part, we update its text content. If not, notes are silently skipped.
- */
-function addSpeakerNotes(document: XmlDocument, narration: string): void {
-  // Look for existing notes body element
-  const notesBody = document.getElementsByTagName("p:txBody");
-  if (notesBody.length === 0) return;
-
-  // The last txBody in a slide XML is typically the notes placeholder
-  // This is a heuristic — notes are normally in a separate XML part,
-  // but when accessed via slide.modify() we work with the slide XML directly.
-  // This approach may not work for all templates; it's best-effort.
-  const lastTxBody = notesBody[notesBody.length - 1];
-  if (!lastTxBody) return;
-
-  // Find or create paragraph elements for the narration
-  const paragraphs = lastTxBody.getElementsByTagName("a:p");
-  if (paragraphs.length > 0) {
-    const firstParagraph = paragraphs[0];
-    const runs = firstParagraph.getElementsByTagName("a:r");
-    if (runs.length > 0) {
-      const textEl = runs[0].getElementsByTagName("a:t")[0];
-      if (textEl) {
-        textEl.textContent = narration;
-      }
-    }
-  }
 }
