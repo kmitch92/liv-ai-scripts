@@ -118,6 +118,45 @@ function getPlaceholderContent(
 }
 
 /**
+ * Find the first table content block on a slide, if any.
+ */
+function findTableBlock(
+  slideData: Slide,
+): { headers: string[]; rows: string[][] } | undefined {
+  const blocks = slideData.contentBlocks;
+  if (!blocks) return undefined;
+  const table = blocks.find((b) => b.type === "table");
+  return table && table.type === "table"
+    ? { headers: table.headers, rows: table.rows }
+    : undefined;
+}
+
+/**
+ * Populate a table placeholder by invoking pptx-automizer's setTable modifier.
+ */
+function populateTablePlaceholder(
+  addedSlide: ISlide,
+  placeholderName: string,
+  table: { headers: string[]; rows: string[][] },
+  slideIndex: number,
+): void {
+  const tableData = {
+    header: [{ values: table.headers }],
+    body: table.rows.map((row) => ({ values: row })),
+  };
+  try {
+    addedSlide.modifyElement(
+      placeholderName,
+      modify.setTable(tableData) as unknown as ShapeModificationCallback,
+    );
+  } catch {
+    logger.warn(
+      `Table placeholder "${placeholderName}" not found on slide ${slideIndex + 1}, skipping`,
+    );
+  }
+}
+
+/**
  * Populate text placeholders on an added slide using the manifest layout definition.
  */
 function populatePlaceholders(
@@ -129,6 +168,19 @@ function populatePlaceholders(
   for (const placeholder of layout.placeholders) {
     if (placeholder.type === "image") {
       // Image placeholders handled separately
+      continue;
+    }
+
+    if (placeholder.type === "table") {
+      const table = findTableBlock(slideData);
+      if (table) {
+        populateTablePlaceholder(
+          addedSlide,
+          placeholder.name,
+          table,
+          slideIndex,
+        );
+      }
       continue;
     }
 
