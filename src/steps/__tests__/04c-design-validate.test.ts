@@ -353,6 +353,37 @@ describe("validateDesign", () => {
     });
   });
 
+  describe("no layout-order enforcement", () => {
+    it("does not enforce slide ordering (non-canonical sequence validates cleanly for order)", () => {
+      // Deliberately non-canonical: a "reflect"-style slide first, a "header"-style last,
+      // plus other layouts scrambled. Any hypothetical order rule (e.g. "header must be
+      // first", "reflect must be last", "agenda must follow header") must NOT fire.
+      const presentation = makePresentation({
+        slideCount: 5,
+        slideOverrides: [
+          { layoutStyle: "key-point", slideTitle: "Reflect" },
+          { layoutStyle: "two-column", slideTitle: "Body B" },
+          { layoutStyle: "full-image", slideTitle: "Body A" },
+          { layoutStyle: "quote-focus", slideTitle: "Agenda" },
+          { layoutStyle: "standard", slideTitle: "Header" },
+        ],
+      });
+      const config = makeConfig();
+
+      const result = validateDesign({ presentation, config });
+
+      const allViolations = result.slides.flatMap(
+        (s) => s.designMetadata!.violations,
+      );
+      const orderRelated = allViolations.filter((v) =>
+        /order|sequence|must be first|must be last|must follow|position/i.test(
+          v,
+        ),
+      );
+      expect(orderRelated).toEqual([]);
+    });
+  });
+
   describe("multiple violations per slide", () => {
     it("accumulates both bullet-density and text-density violations on one slide", () => {
       const longBullets = Array.from({ length: 6 }, () => "X".repeat(80));
