@@ -1,0 +1,108 @@
+{
+  "layouts": [
+    {
+      "id": "header",
+      "name": "Header",
+      "description": "This is a header slide. It will be at the start of every video in this course. The only changes will be the name of the poem in light grey and a photo that matches the relevant poem on the right.",
+      "placeholders": [
+        { "name": "Title 3", "type": "title", "maxChars": 60 },
+        { "name": "Subtitle 4", "type": "subtitle", "maxChars": 80 },
+        { "name": "Picture Placeholder 6", "type": "image" }
+      ],
+      "bestFor": ["introduction", "title", "opening"],
+      "hasImage": true
+    },
+    {
+      "id": "agenda",
+      "name": "Agenda",
+      "description": "This is an agenda slide. It will inform students of what is going to be discussed in the video. This slide will always come directly after the header slide. The agenda will always stay in this order for each poem to improve predictability.",
+      "placeholders": [
+        { "name": "Title 1", "type": "title", "maxChars": 40 },
+        { "name": "Content Placeholder 2", "type": "bullets" }
+      ],
+      "bestFor": ["agenda", "overview", "outline"],
+      "maxBullets": 6,
+      "hasImage": false
+    },
+    {
+      "id": "vocabulary",
+      "name": "Vocabulary",
+      "description": "This is the vocabulary slide. It will always come directly after the agenda slide and directly before the Summary + Reading slide so that the pupils fully understand any tricky or ambiguous phrasing that is important to the poem’s meaning. Only 3-4 main phrases should be chosen. This slide gives the pupils the best chance to understand the Summary + Reading part of the video.",
+      "placeholders": [
+        { "name": "Title 1", "type": "title", "maxChars": 40 },
+        { "name": "Content Placeholder 3", "type": "bullets" }
+      ],
+      "bestFor": ["vocabulary", "definitions", "key-terms"],
+      "maxBullets": 4,
+      "hasImage": false
+    },
+    {
+      "id": "summary-reading",
+      "name": "Summary + Reading",
+      "description": "This slide will have a picture of the poem/relevant imagery on the right hand side and a simplified summary of the poem and its themes on the left. The summary should be read by the pupil and they should feel immediate clarity.",
+      "placeholders": [
+        { "name": "Title 1", "type": "title", "maxChars": 40 },
+        { "name": "Content Placeholder 2", "type": "body", "maxChars": 400 },
+        { "name": "Picture Placeholder 4", "type": "image" }
+      ],
+      "bestFor": ["summary", "overview", "reading"],
+      "hasImage": true
+    },
+    {
+      "id": "context",
+      "name": "Context",
+      "description": "This is the context slide. It always comes directly after the Summary + Reading slide and directly before the zoom slides. It details the year the poem was written, and relevant context of the time period, of the author’s life and any further influences. The structure of this page may differ depending on the poet. Do not force context if it does not relate to the poem.",
+      "placeholders": [
+        { "name": "Title 1", "type": "title", "maxChars": 40 },
+        { "name": "Content Placeholder 2", "type": "body", "maxChars": 600 }
+      ],
+      "bestFor": ["context", "background", "history", "biography"],
+      "hasImage": false
+    },
+    {
+      "id": "zoom",
+      "name": "Zoom",
+      "description": "This is a zoom slide. It shows an important quotation from the poem. The voice over will discuss any poetic features included in the quote and their effects. This slide should be repeated 4-7 times with different powerful quotes that pupils could use in their exams.",
+      "placeholders": [
+        { "name": "Title 1", "type": "title", "maxChars": 40 },
+        { "name": "Content Placeholder 2", "type": "quote", "maxChars": 200 }
+      ],
+      "bestFor": ["quotation", "analysis", "key-point", "close-reading"],
+      "hasImage": false
+    },
+    {
+      "id": "summary-table",
+      "name": "Summary Table",
+      "description": "This is a summary slide. It shows the quotations from the zoom slides alongside clear labelling of the feature used and the impact.",
+      "placeholders": [
+        { "name": "Title 1", "type": "title", "maxChars": 40 },
+        { "name": "Content Placeholder 5", "type": "table" }
+      ],
+      "bestFor": ["summary", "recap", "comparison", "table"],
+      "hasImage": false
+    },
+    {
+      "id": "last-bits",
+      "name": "Last Bits",
+      "description": "The Last bits slide is an optional slide to include any extra important information that does not fit the structure given.",
+      "placeholders": [
+        { "name": "Title 1", "type": "title", "maxChars": 40 },
+        { "name": "Content Placeholder 2", "type": "body", "maxChars": 400 },
+        { "name": "Picture Placeholder 3", "type": "image" }
+      ],
+      "bestFor": ["extras", "miscellaneous", "additional-info"],
+      "hasImage": true
+    },
+    {
+      "id": "reflect",
+      "name": "Reflect",
+      "description": "This is the reflect slide. It always comes at the end and directs pupils to course materials.",
+      "placeholders": [
+        { "name": "Title 1", "type": "title", "maxChars": 60 },
+        { "name": "Subtitle 2", "type": "subtitle", "maxChars": 120 }
+      ],
+      "bestFor": ["closing", "cta", "conclusion", "reflection"],
+      "hasImage": false
+    }
+  ]
+}
