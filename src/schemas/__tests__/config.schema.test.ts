@@ -104,6 +104,37 @@ describe("ConfigSchema", () => {
     });
   });
 
+  describe("script slideStructureNotes", () => {
+    it("parses config with script.slideStructureNotes set", () => {
+      const result = ConfigSchema.parse({
+        ...existingConfig,
+        script: {
+          ...existingConfig.script,
+          slideStructureNotes: "./notes/slide-structure.md",
+        },
+      });
+      expect(result.script.slideStructureNotes).toBe(
+        "./notes/slide-structure.md"
+      );
+    });
+
+    it("parses config without script.slideStructureNotes (optional)", () => {
+      const result = ConfigSchema.parse(existingConfig);
+      expect(result.script.slideStructureNotes).toBeUndefined();
+    });
+
+    it("rejects non-string script.slideStructureNotes", () => {
+      const result = ConfigSchema.safeParse({
+        ...existingConfig,
+        script: {
+          ...existingConfig.script,
+          slideStructureNotes: 123,
+        },
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
   describe("validation", () => {
     it("rejects missing branding section", () => {
       const { branding: _, ...withoutBranding } = existingConfig;

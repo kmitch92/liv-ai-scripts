@@ -30,6 +30,7 @@ export const ConfigSchema = z.object({
     speakerIdentity: z.string().describe("Who the speaker is, e.g. 'an expert GCSE English Literature teacher'"),
     targetAudience: z.string().describe("Who the presentation is for, e.g. 'GCSE students aged 14-16' or 'senior software engineers'"),
     systemPrompt: z.string().describe("Purpose/style of the presentation"),
+    slideStructureNotes: z.string().optional().describe("Path to slide structure notes file"),
     contextFiles: z.array(z.string()).default([]).describe("Paths to context files (PDF, txt, md) to include as reference material"),
     phoneticsOverrides: z.array(z.object({
       from: z.string().describe("The original word to match"),
