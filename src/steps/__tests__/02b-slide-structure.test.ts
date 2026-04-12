@@ -12,14 +12,20 @@ vi.mock("../../lib/logger.js", () => ({
   info: vi.fn(),
 }));
 
+vi.mock("node:fs/promises", () => ({
+  readFile: vi.fn(),
+}));
+
 import { extractSlideStructure } from "../02b-slide-structure.js";
 import type { SlideStructureOptions } from "../02b-slide-structure.js";
 import { callLLM } from "../../lib/llm.js";
 import * as logger from "../../lib/logger.js";
+import { readFile } from "node:fs/promises";
 import type { NarrationScript, TemplateManifest } from "../../types/index.js";
 
 const mockCallLLM = vi.mocked(callLLM);
 const mockWarn = vi.mocked(logger.warn);
+const mockReadFile = vi.mocked(readFile);
 
 function makeNarrationScript(
   sectionCount = 5,
@@ -321,6 +327,170 @@ describe("extractSlideStructure", () => {
         typeof msg === "string" && msg.includes("narration differs"),
       );
       expect(narrationWarns).toHaveLength(0);
+    });
+  });
+
+  function makeNineLayoutManifest(): TemplateManifest {
+    const layouts = Array.from({ length: 9 }, (_, i) => ({
+      id: `layout-${i + 1}`,
+      name: `Layout ${i + 1}`,
+      description: `Description for layout ${i + 1}`,
+      placeholders: [{ name: "body", type: "body" as const }],
+      bestFor: ["content"],
+      hasImage: i % 2 === 0,
+      maxBullets: i + 1,
+    }));
+    return { layouts };
+  }
+
+  function makePresentationWithLayoutIds(
+    narration: NarrationScript,
+    layoutIds: string[],
+  ): string {
+    return JSON.stringify({
+      title: narration.title,
+      narrativeArc: narration.narrativeArc,
+      slides: narration.sections.map((s, i) => ({
+        slideTitle: `Slide ${i + 1}`,
+        narration: s.narration,
+        bulletPoints: ["A point"],
+        templateLayoutId: layoutIds[i],
+        imageQuery: "image",
+        durationSeconds: s.durationSeconds,
+      })),
+      totalDurationSeconds: narration.totalDurationSeconds,
+    });
+  }
+
+  describe("template manifest prompt content", () => {
+    it("includes the verbatim 'Use these layouts in any order' instruction in the system prompt", async () => {
+      const narration = makeNarrationScript(3);
+      const manifest = makeNineLayoutManifest();
+      mockCallLLM.mockResolvedValueOnce(
+        makePresentationWithLayoutIds(narration, [
+          "layout-1",
+          "layout-2",
+          "layout-3",
+        ]),
+      );
+
+      await extractSlideStructure(
+        defaultOptions({ narrationScript: narration, templateManifest: manifest }),
+      );
+
+      const systemPrompt = mockCallLLM.mock.calls[0][1] as string;
+      expect(systemPrompt).toContain(
+        "Use these layouts in any order, any number of times, as you see fit.",
+      );
+    });
+
+    it("includes all 9 layout entries with id, description, maxBullets, and hasImage", async () => {
+      const narration = makeNarrationScript(3);
+      const manifest = makeNineLayoutManifest();
+      mockCallLLM.mockResolvedValueOnce(
+        makePresentationWithLayoutIds(narration, [
+          "layout-1",
+          "layout-2",
+          "layout-3",
+        ]),
+      );
+
+      await extractSlideStructure(
+        defaultOptions({ narrationScript: narration, templateManifest: manifest }),
+      );
+
+      const systemPrompt = mockCallLLM.mock.calls[0][1] as string;
+      for (let i = 1; i <= 9; i++) {
+        expect(systemPrompt).toContain(`layout-${i}`);
+        expect(systemPrompt).toContain(`Description for layout ${i}`);
+      }
+      // hasImage and maxBullets should be surfaced
+      expect(systemPrompt).toMatch(/hasImage|Has image/i);
+      expect(systemPrompt).toMatch(/maxBullets|Max bullets/i);
+    });
+  });
+
+  describe("slide structure notes", () => {
+    it("loads slide structure notes from filesystem and includes them in the prompt", async () => {
+      const narration = makeNarrationScript(3);
+      const notesContent =
+        "Start with a hook about conflict. End with a comparison table.";
+      mockReadFile.mockResolvedValueOnce(notesContent);
+      mockCallLLM.mockResolvedValueOnce(
+        makeValidPresentationResponse(narration),
+      );
+
+      await extractSlideStructure(
+        defaultOptions({
+          narrationScript: narration,
+          slideStructureNotes: "/path/to/notes.md",
+        } as never),
+      );
+
+      expect(mockReadFile).toHaveBeenCalledWith(
+        "/path/to/notes.md",
+        expect.anything(),
+      );
+      const userMessage = (mockCallLLM.mock.calls[0][0] as Array<{
+        content: string;
+      }>)[0].content;
+      expect(userMessage).toContain(notesContent);
+      expect(userMessage).toMatch(
+        /Slide structure notes from the content author/i,
+      );
+    });
+
+    it("does not read filesystem when slideStructureNotes is not provided", async () => {
+      const narration = makeNarrationScript(3);
+      mockCallLLM.mockResolvedValueOnce(
+        makeValidPresentationResponse(narration),
+      );
+
+      await extractSlideStructure(
+        defaultOptions({ narrationScript: narration }),
+      );
+
+      expect(mockReadFile).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("templateLayoutId validation against manifest", () => {
+    it("throws a clear error when LLM returns a templateLayoutId not in the manifest", async () => {
+      const narration = makeNarrationScript(3);
+      const manifest = makeNineLayoutManifest();
+      // Return an unknown layout id on slide 2
+      const response = makePresentationWithLayoutIds(narration, [
+        "layout-1",
+        "layout-does-not-exist",
+        "layout-3",
+      ]);
+      mockCallLLM.mockResolvedValue(response);
+
+      await expect(
+        extractSlideStructure(
+          defaultOptions({
+            narrationScript: narration,
+            templateManifest: manifest,
+          }),
+        ),
+      ).rejects.toThrow(/layout-does-not-exist|unknown.*layout/i);
+    });
+
+    it("succeeds when all templateLayoutIds match manifest ids", async () => {
+      const narration = makeNarrationScript(3);
+      const manifest = makeNineLayoutManifest();
+      mockCallLLM.mockResolvedValueOnce(
+        makePresentationWithLayoutIds(narration, [
+          "layout-1",
+          "layout-4",
+          "layout-9",
+        ]),
+      );
+
+      const result = await extractSlideStructure(
+        defaultOptions({ narrationScript: narration, templateManifest: manifest }),
+      );
+      expect(result.slides).toHaveLength(3);
     });
   });
 });

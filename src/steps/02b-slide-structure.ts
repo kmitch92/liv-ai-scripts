@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { readFile } from "node:fs/promises";
 import { PresentationSchema } from "../schemas/slide.schema.js";
 import type {
   NarrationScript,
@@ -15,6 +16,7 @@ export interface SlideStructureOptions {
   narrationScript: NarrationScript;
   contextText: string;
   templateManifest?: TemplateManifest;
+  slideStructureNotes?: string;
   client?: Anthropic;
 }
 
@@ -41,7 +43,7 @@ ${placeholderList}
 AVAILABLE TEMPLATE LAYOUTS:
 ${layoutDescriptions}
 
-For each slide, set "templateLayoutId" to one of the layout IDs listed above. Choose the layout that best matches the slide's content and purpose. Vary layouts across slides for visual interest. Do NOT set "layoutStyle" when using template layouts.`;
+For each slide, set "templateLayoutId" to one of the layout IDs listed above. Use these layouts in any order, any number of times, as you see fit. Do NOT set "layoutStyle" when using template layouts.`;
 }
 
 function buildSystemPrompt(manifest?: TemplateManifest): string {
@@ -110,10 +112,15 @@ JSON Schema for output:
 function buildUserMessage(
   narrationScript: NarrationScript,
   contextText: string,
+  slideStructureNotes?: string,
 ): string {
   const sectionsJson = JSON.stringify(narrationScript.sections, null, 2);
 
-  return `Extract a visual slide structure from the following narration script. There are ${narrationScript.sections.length} sections — produce exactly ${narrationScript.sections.length} slides.
+  const notesBlock = slideStructureNotes
+    ? `Slide structure notes from the content author:\n---\n${slideStructureNotes}\n---\n\n`
+    : "";
+
+  return `${notesBlock}Extract a visual slide structure from the following narration script. There are ${narrationScript.sections.length} sections — produce exactly ${narrationScript.sections.length} slides.
 
 Presentation title: ${narrationScript.title}
 Narrative arc: ${narrationScript.narrativeArc}
@@ -160,12 +167,18 @@ export async function extractSlideStructure(
     narrationScript,
     contextText,
     templateManifest,
+    slideStructureNotes,
     client: injectedClient,
   } = options;
 
   const provider = detectProvider();
   const systemPrompt = buildSystemPrompt(templateManifest);
   const expectedSlideCount = narrationScript.sections.length;
+
+  let notesContent: string | undefined;
+  if (slideStructureNotes) {
+    notesContent = await readFile(slideStructureNotes, "utf8");
+  }
 
   logger.startStep(
     `Extracting slide structure with LLM (${provider})...`,
@@ -174,7 +187,7 @@ export async function extractSlideStructure(
   const messages: ChatMessage[] = [
     {
       role: "user",
-      content: buildUserMessage(narrationScript, contextText),
+      content: buildUserMessage(narrationScript, contextText, notesContent),
     },
   ];
 
@@ -258,6 +271,19 @@ export async function extractSlideStructure(
       throw new Error(
         `Slide count (${presentation.slides.length}) does not match narration section count (${expectedSlideCount}) after ${MAX_RETRIES + 1} attempts`,
       );
+    }
+
+    // Validate templateLayoutIds against manifest (if provided)
+    if (templateManifest) {
+      const validIds = new Set(templateManifest.layouts.map((l) => l.id));
+      for (let i = 0; i < presentation.slides.length; i++) {
+        const layoutId = presentation.slides[i].templateLayoutId;
+        if (layoutId && !validIds.has(layoutId)) {
+          throw new Error(
+            `Unknown templateLayoutId "${layoutId}" on slide ${i + 1}. Valid ids: ${Array.from(validIds).join(", ")}`,
+          );
+        }
+      }
     }
 
     // Warn if narration text was altered (non-fatal)

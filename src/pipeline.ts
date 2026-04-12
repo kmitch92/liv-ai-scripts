@@ -85,6 +85,7 @@ export async function runPipeline(options: PipelineOptions): Promise<string> {
           narrationScript,
           contextText,
           templateManifest,
+          slideStructureNotes: config.script.slideStructureNotes,
         });
       } catch (err) {
         logger.failStep("Slide structure extraction failed");
