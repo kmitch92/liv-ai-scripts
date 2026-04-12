@@ -168,6 +168,112 @@ describe("ContentBlockSchema", () => {
     });
   });
 
+  describe("table variant", () => {
+    it("parses valid table with headers and matching rows", () => {
+      const result = ContentBlockSchema.parse({
+        type: "table",
+        headers: ["Device", "Effect"],
+        rows: [
+          ["Alliteration", "Creates emphasis"],
+          ["Metaphor", "Creates imagery"],
+        ],
+      });
+      expect(result).toEqual({
+        type: "table",
+        headers: ["Device", "Effect"],
+        rows: [
+          ["Alliteration", "Creates emphasis"],
+          ["Metaphor", "Creates imagery"],
+        ],
+      });
+    });
+
+    it("rejects empty headers array", () => {
+      const result = ContentBlockSchema.safeParse({
+        type: "table",
+        headers: [],
+        rows: [["a"]],
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects empty rows array", () => {
+      const result = ContentBlockSchema.safeParse({
+        type: "table",
+        headers: ["Device"],
+        rows: [],
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects more than 10 headers", () => {
+      const headers = Array.from({ length: 11 }, (_, i) => `H${i}`);
+      const row = Array.from({ length: 11 }, (_, i) => `c${i}`);
+      const result = ContentBlockSchema.safeParse({
+        type: "table",
+        headers,
+        rows: [row],
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects more than 20 rows", () => {
+      const rows = Array.from({ length: 21 }, () => ["x"]);
+      const result = ContentBlockSchema.safeParse({
+        type: "table",
+        headers: ["H"],
+        rows,
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects more than 10 cells in a row", () => {
+      const headers = Array.from({ length: 10 }, (_, i) => `H${i}`);
+      const tooWideRow = Array.from({ length: 11 }, (_, i) => `c${i}`);
+      const result = ContentBlockSchema.safeParse({
+        type: "table",
+        headers,
+        rows: [tooWideRow],
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects row whose cell count does not equal headers length", () => {
+      const result = ContentBlockSchema.safeParse({
+        type: "table",
+        headers: ["A", "B", "C"],
+        rows: [
+          ["1", "2", "3"],
+          ["1", "2"],
+        ],
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const rowsIssue = result.error.issues.find((issue) =>
+          issue.path.includes("rows"),
+        );
+        expect(rowsIssue).toBeDefined();
+        expect(rowsIssue?.message).toMatch(
+          /same number of cells as there are headers/i,
+        );
+      }
+    });
+
+    it("parses valid table alongside other variants in an array", () => {
+      const blocks = [
+        { type: "paragraph" as const, text: "Intro" },
+        {
+          type: "table" as const,
+          headers: ["Term", "Meaning"],
+          rows: [["Simile", "Comparison using like/as"]],
+        },
+        { type: "bullet-list" as const, items: ["first", "second"] },
+      ];
+      const results = blocks.map((block) => ContentBlockSchema.safeParse(block));
+      expect(results.every((r) => r.success)).toBe(true);
+    });
+  });
+
   describe("discriminated union behaviour", () => {
     it("rejects invalid type string", () => {
       const result = ContentBlockSchema.safeParse({

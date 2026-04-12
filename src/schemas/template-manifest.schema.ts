@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const PlaceholderSchema = z.object({
   name: z.string(),
-  type: z.enum(["title", "subtitle", "body", "image", "quote", "bullets"]),
+  type: z.enum(["title", "subtitle", "body", "image", "quote", "bullets", "table"]),
   maxChars: z.number().optional().describe("Maximum character count for this placeholder"),
 });
 

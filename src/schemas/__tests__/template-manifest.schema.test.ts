@@ -41,10 +41,26 @@ describe("PlaceholderSchema", () => {
     }
   });
 
+  it("accepts table placeholder type", () => {
+    const result = PlaceholderSchema.safeParse({
+      name: "comparisonTable",
+      type: "table",
+    });
+    expect(result.success).toBe(true);
+  });
+
   it("rejects invalid placeholder type", () => {
     const result = PlaceholderSchema.safeParse({
       name: "test",
       type: "header",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects unknown placeholder type 'chart' (guard against enum loosening)", () => {
+    const result = PlaceholderSchema.safeParse({
+      name: "test",
+      type: "chart",
     });
     expect(result.success).toBe(false);
   });
