@@ -21,6 +21,10 @@ export interface SlideStructureOptions {
 }
 
 function buildTemplateManifestBlock(manifest: TemplateManifest): string {
+  const contentExpectations = manifest.layouts
+    .map((layout) => `- ${layout.id}: ${layout.description}`)
+    .join("\n");
+
   const layoutDescriptions = manifest.layouts
     .map((layout) => {
       const placeholderList = layout.placeholders
@@ -40,10 +44,14 @@ ${placeholderList}
     .join("\n\n");
 
   return `
+CONTENT EXPECTATIONS PER LAYOUT:
+${contentExpectations}
+
 AVAILABLE TEMPLATE LAYOUTS:
 ${layoutDescriptions}
 
-For each slide, set "templateLayoutId" to one of the layout IDs listed above. Use these layouts in any order, any number of times, as you see fit. Do NOT set "layoutStyle" when using template layouts.`;
+For each slide, set "templateLayoutId" to one of the layout IDs listed above. Use these layouts in any order, any number of times, as you see fit.
+Follow the CONTENT EXPECTATIONS above for each layout — they describe what content must appear on each slide type.`;
 }
 
 function buildSystemPrompt(manifest?: TemplateManifest): string {
@@ -52,13 +60,16 @@ function buildSystemPrompt(manifest?: TemplateManifest): string {
     : `
 No template manifest provided. For each slide, set "layoutStyle" to one of: "standard", "quote-focus", "full-image", "two-column", "key-point". Vary layouts across slides for visual interest. Do NOT set "templateLayoutId".`;
 
-  return `You are a visual design specialist. Your task is to read a completed narration script and extract a visual slide structure from it. Each narration section maps to exactly one slide. You must preserve the narration text on each slide exactly as given.
+  const layoutSchemaLine = manifest
+    ? `      "templateLayoutId": "string - one of the layout IDs listed above (required)",`
+    : `      "layoutStyle": "standard|quote-focus|full-image|two-column|key-point",`;
+
+  return `You are a visual design specialist. Your task is to read a completed narration script and extract a visual slide structure from it.
 
 Rules:
 - Output ONLY valid JSON matching the schema below. No markdown fencing, no commentary.
-- Each narration section maps to exactly 1 slide. The total number of slides MUST equal the number of narration sections.
-- The "narration" field on each slide MUST be the EXACT narration text from the corresponding section. Do not alter, summarise, or truncate it.
-- Extract the following from each section's narration:
+- The combined narration across all slides should cover all sections; sections may be split across multiple slides.
+- Extract the following for each slide:
   - slideTitle: a concise, descriptive title for the visual slide
   - bulletPoints: 1-6 key points extracted from the narration (also derive from contentBlocks for backwards compatibility)
   - contentBlocks: typed content blocks (see types below)
@@ -66,7 +77,7 @@ Rules:
   - subheading: a short contextual line under the title (optional)
   - imageConcept: describe the ideal visual — mood, composition, palette, subject matter
   - imageQuery: a specific, concrete search query for finding a stock image
-- durationSeconds on each slide must match the corresponding narration section's durationSeconds.
+- durationSeconds on each slide should reflect the length of its narration chunk; slide durations should sum to the total narration duration.
 
 Content Block Types (for the "contentBlocks" array):
 1. bullet-list: { "type": "bullet-list", "items": ["point 1", "point 2", ...] } — key points or takeaways (1-6 items)
@@ -87,15 +98,14 @@ JSON Schema for output:
   "slides": [
     {
       "slideTitle": "string",
-      "narration": "string - EXACT narration from the corresponding section",
+      "narration": "string - narration chunk for this slide",
       "bulletPoints": ["string", ...] (1-6 items),
       "keyQuote": "string (optional)",
       "subheading": "string (optional)",
-      "layoutStyle": "standard|quote-focus|full-image|two-column|key-point (only if no template manifest)",
-      "templateLayoutId": "string (only if template manifest provided)",
+${layoutSchemaLine}
       "imageQuery": "string - specific stock image search query",
       "imageConcept": "string - mood, composition, palette description (optional)",
-      "durationSeconds": "number - must match narration section duration",
+      "durationSeconds": "number - duration of this slide's narration chunk",
       "contentBlocks": [
         { "type": "bullet-list", "items": ["...", "..."] },
         { "type": "quote", "text": "...", "attribution": "..." },
@@ -280,6 +290,34 @@ export async function extractSlideStructure(
 
     // Validate templateLayoutIds against manifest (if provided)
     if (templateManifest) {
+      // Every slide MUST carry a non-empty templateLayoutId when manifest is provided.
+      const missingIndices: number[] = [];
+      for (let i = 0; i < presentation.slides.length; i++) {
+        const layoutId = presentation.slides[i].templateLayoutId;
+        if (!layoutId || layoutId.trim() === "") {
+          missingIndices.push(i + 1);
+        }
+      }
+      if (missingIndices.length > 0) {
+        const errMsg = `Missing templateLayoutId on slides: ${missingIndices.join(", ")}. Every slide MUST set templateLayoutId to one of the provided layout IDs.`;
+        if (attempt < MAX_RETRIES) {
+          logger.warn(
+            `Attempt ${attempt + 1}: ${errMsg} retrying...`,
+          );
+          messages.push(
+            { role: "assistant", content: lastRawResponse },
+            {
+              role: "user",
+              content: buildCorrectionMessage(lastRawResponse, errMsg),
+            },
+          );
+          continue;
+        }
+        throw new Error(
+          `${errMsg} after ${MAX_RETRIES + 1} attempts`,
+        );
+      }
+
       const validIds = new Set(templateManifest.layouts.map((l) => l.id));
       for (let i = 0; i < presentation.slides.length; i++) {
         const layoutId = presentation.slides[i].templateLayoutId;

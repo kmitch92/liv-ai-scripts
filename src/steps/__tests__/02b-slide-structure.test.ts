@@ -159,9 +159,20 @@ describe("extractSlideStructure", () => {
     it("succeeds and returns a valid Presentation when manifest is provided", async () => {
       const narration = makeNarrationScript(3);
       const manifest = makeManifest();
-      mockCallLLM.mockResolvedValueOnce(
-        makeValidPresentationResponse(narration),
-      );
+      const response = JSON.stringify({
+        title: narration.title,
+        narrativeArc: narration.narrativeArc,
+        slides: narration.sections.map((s, i) => ({
+          slideTitle: `Slide ${i + 1}: ${s.sectionLabel}`,
+          narration: s.narration,
+          bulletPoints: ["Key point 1", "Key point 2"],
+          templateLayoutId: i === 0 ? "title-slide" : "content-with-image",
+          imageQuery: "relevant image",
+          durationSeconds: s.durationSeconds,
+        })),
+        totalDurationSeconds: narration.totalDurationSeconds,
+      });
+      mockCallLLM.mockResolvedValueOnce(response);
 
       const result = await extractSlideStructure(
         defaultOptions({ narrationScript: narration, templateManifest: manifest }),
@@ -393,6 +404,83 @@ describe("extractSlideStructure", () => {
       expect(systemPrompt).toMatch(/hasImage|Has image/i);
       expect(systemPrompt).toMatch(/maxBullets|Max bullets/i);
     });
+
+    it("includes the literal 'CONTENT EXPECTATIONS PER LAYOUT:' heading when manifest is provided", async () => {
+      const narration = makeNarrationScript(3);
+      const manifest = makeNineLayoutManifest();
+      mockCallLLM.mockResolvedValueOnce(
+        makePresentationWithLayoutIds(narration, [
+          "layout-1",
+          "layout-2",
+          "layout-3",
+        ]),
+      );
+
+      await extractSlideStructure(
+        defaultOptions({ narrationScript: narration, templateManifest: manifest }),
+      );
+
+      const systemPrompt = mockCallLLM.mock.calls[0][1] as string;
+      expect(systemPrompt).toContain("CONTENT EXPECTATIONS PER LAYOUT:");
+    });
+
+    it("includes each layout's verbatim description in the system prompt", async () => {
+      const narration = makeNarrationScript(3);
+      const manifest = makeNineLayoutManifest();
+      mockCallLLM.mockResolvedValueOnce(
+        makePresentationWithLayoutIds(narration, [
+          "layout-1",
+          "layout-2",
+          "layout-3",
+        ]),
+      );
+
+      await extractSlideStructure(
+        defaultOptions({ narrationScript: narration, templateManifest: manifest }),
+      );
+
+      const systemPrompt = mockCallLLM.mock.calls[0][1] as string;
+      for (const layout of manifest.layouts) {
+        expect(systemPrompt.includes(layout.description)).toBe(true);
+      }
+    });
+
+    it("places the CONTENT EXPECTATIONS block BEFORE the AVAILABLE TEMPLATE LAYOUTS block", async () => {
+      const narration = makeNarrationScript(3);
+      const manifest = makeNineLayoutManifest();
+      mockCallLLM.mockResolvedValueOnce(
+        makePresentationWithLayoutIds(narration, [
+          "layout-1",
+          "layout-2",
+          "layout-3",
+        ]),
+      );
+
+      await extractSlideStructure(
+        defaultOptions({ narrationScript: narration, templateManifest: manifest }),
+      );
+
+      const systemPrompt = mockCallLLM.mock.calls[0][1] as string;
+      const directivesIdx = systemPrompt.indexOf("CONTENT EXPECTATIONS PER LAYOUT:");
+      const paletteIdx = systemPrompt.indexOf("AVAILABLE TEMPLATE LAYOUTS:");
+      expect(directivesIdx).toBeGreaterThanOrEqual(0);
+      expect(paletteIdx).toBeGreaterThanOrEqual(0);
+      expect(directivesIdx).toBeLessThan(paletteIdx);
+    });
+
+    it("does NOT include 'CONTENT EXPECTATIONS PER LAYOUT:' heading when no manifest is provided", async () => {
+      const narration = makeNarrationScript(3);
+      mockCallLLM.mockResolvedValueOnce(
+        makeValidPresentationResponse(narration),
+      );
+
+      await extractSlideStructure(
+        defaultOptions({ narrationScript: narration }),
+      );
+
+      const systemPrompt = mockCallLLM.mock.calls[0][1] as string;
+      expect(systemPrompt).not.toContain("CONTENT EXPECTATIONS PER LAYOUT:");
+    });
   });
 
   describe("slide structure notes", () => {
@@ -593,6 +681,108 @@ describe("extractSlideStructure", () => {
         typeof msg === "string" && msg.includes("narration differs"),
       );
       expect(narrationWarns).toHaveLength(0);
+    });
+  });
+
+  describe("system prompt regression: decoupling leftovers", () => {
+    it("A. system prompt does NOT contain 'Each narration section maps to exactly one slide'", async () => {
+      const narration = makeNarrationScript(3);
+      mockCallLLM.mockResolvedValueOnce(makeValidPresentationResponse(narration));
+
+      await extractSlideStructure(defaultOptions({ narrationScript: narration }));
+
+      const systemPrompt = mockCallLLM.mock.calls[0][1] as string;
+      expect(systemPrompt).not.toContain(
+        "Each narration section maps to exactly one slide",
+      );
+    });
+
+    it("B. system prompt does NOT contain 'MUST equal the number of narration sections'", async () => {
+      const narration = makeNarrationScript(3);
+      mockCallLLM.mockResolvedValueOnce(makeValidPresentationResponse(narration));
+
+      await extractSlideStructure(defaultOptions({ narrationScript: narration }));
+
+      const systemPrompt = mockCallLLM.mock.calls[0][1] as string;
+      expect(systemPrompt).not.toContain(
+        "MUST equal the number of narration sections",
+      );
+    });
+
+    it("C. system prompt does NOT contain 'durationSeconds on each slide must match the corresponding narration section'", async () => {
+      const narration = makeNarrationScript(3);
+      mockCallLLM.mockResolvedValueOnce(makeValidPresentationResponse(narration));
+
+      await extractSlideStructure(defaultOptions({ narrationScript: narration }));
+
+      const systemPrompt = mockCallLLM.mock.calls[0][1] as string;
+      expect(systemPrompt).not.toContain(
+        "durationSeconds on each slide must match the corresponding narration section",
+      );
+    });
+
+    it("D. system prompt does NOT contain 'must be the EXACT narration text from the corresponding section'", async () => {
+      const narration = makeNarrationScript(3);
+      mockCallLLM.mockResolvedValueOnce(makeValidPresentationResponse(narration));
+
+      await extractSlideStructure(defaultOptions({ narrationScript: narration }));
+
+      const systemPrompt = mockCallLLM.mock.calls[0][1] as string;
+      expect(systemPrompt).not.toContain(
+        "must be the EXACT narration text from the corresponding section",
+      );
+    });
+
+    it("E. when manifest is provided, system prompt does NOT mention 'layoutStyle' at all", async () => {
+      const narration = makeNarrationScript(3);
+      const manifest = makeNineLayoutManifest();
+      mockCallLLM.mockResolvedValueOnce(
+        makePresentationWithLayoutIds(narration, [
+          "layout-1",
+          "layout-2",
+          "layout-3",
+        ]),
+      );
+
+      await extractSlideStructure(
+        defaultOptions({
+          narrationScript: narration,
+          templateManifest: manifest,
+        }),
+      );
+
+      const systemPrompt = mockCallLLM.mock.calls[0][1] as string;
+      expect(systemPrompt).not.toContain("layoutStyle");
+    });
+  });
+
+  describe("templateLayoutId required when manifest provided", () => {
+    it("F. retries and throws when LLM omits templateLayoutId on any slide while manifest is provided", async () => {
+      const narration = makeNarrationScript(3);
+      const manifest = makeNineLayoutManifest();
+      const responseNoIds = JSON.stringify({
+        title: narration.title,
+        narrativeArc: narration.narrativeArc,
+        slides: narration.sections.map((s, i) => ({
+          slideTitle: `Slide ${i + 1}`,
+          narration: s.narration,
+          bulletPoints: ["A point"],
+          imageQuery: "image",
+          durationSeconds: s.durationSeconds,
+        })),
+        totalDurationSeconds: narration.totalDurationSeconds,
+      });
+      mockCallLLM.mockResolvedValue(responseNoIds);
+
+      await expect(
+        extractSlideStructure(
+          defaultOptions({
+            narrationScript: narration,
+            templateManifest: manifest,
+          }),
+        ),
+      ).rejects.toThrow(/templateLayoutId|missing.*layout/i);
+      expect(mockCallLLM).toHaveBeenCalledTimes(3);
     });
   });
 
