@@ -11,7 +11,6 @@ import type {
   Placeholder,
 } from "../types/index.js";
 import { getLayoutById } from "../lib/template-manifest.js";
-import { getTemplateLayoutForStyle } from "../lib/layout-fallback-map.js";
 import * as logger from "../lib/logger.js";
 
 // pptx-automizer uses a CJS default export. Under NodeNext module resolution
@@ -51,32 +50,22 @@ async function fileExists(filePath: string): Promise<boolean> {
 
 /**
  * Resolve which template layout to use for a slide.
- * Priority: slide.templateLayoutId > fallback from layoutStyle > undefined.
+ * Requires slide.templateLayoutId to map to a layout in the manifest.
+ * Throws a descriptive error if the layout cannot be resolved.
  */
 function resolveLayout(
   slide: Slide,
   manifest: TemplateManifest,
-): TemplateLayout | undefined {
-  // Direct layout ID reference on the slide
-  if (slide.templateLayoutId) {
-    const layout = getLayoutById(manifest, slide.templateLayoutId);
+  slideIndex: number,
+): TemplateLayout {
+  const id = slide.templateLayoutId;
+  if (id) {
+    const layout = getLayoutById(manifest, id);
     if (layout) return layout;
-    logger.warn(
-      `Layout ID "${slide.templateLayoutId}" not found in manifest, falling back`,
-    );
   }
-
-  // Fallback via layoutStyle -> layout ID mapping
-  const mappedId = getTemplateLayoutForStyle(slide.layoutStyle);
-  if (mappedId) {
-    const layout = getLayoutById(manifest, mappedId);
-    if (layout) return layout;
-    logger.warn(
-      `Mapped layout ID "${mappedId}" for style "${slide.layoutStyle}" not found in manifest`,
-    );
-  }
-
-  return undefined;
+  throw new Error(
+    `Slide ${slideIndex + 1} has no resolvable template layout (templateLayoutId="${id ?? "unset"}"; not found in manifest).`,
+  );
 }
 
 /**
@@ -269,72 +258,32 @@ export async function generatePptxV2(
   // Add slides
   for (let i = 0; i < presentation.slides.length; i++) {
     const slideData = presentation.slides[i];
-    const layout = resolveLayout(slideData, templateManifest);
-
-    let slideNumber: number;
-    let layoutId: string;
-
-    if (layout) {
-      slideNumber = getSlideNumberForLayout(layout, templateManifest);
-      layoutId = layout.id;
-    } else {
-      // No matching layout — use the first slide in the template as fallback
-      slideNumber = 1;
-      layoutId = "fallback (slide 1)";
-    }
+    const layout = resolveLayout(slideData, templateManifest, i);
+    const slideNumber = getSlideNumberForLayout(layout, templateManifest);
+    const layoutId = layout.id;
 
     logger.info(
       `Slide ${i + 1}: using layout "${layoutId}" (template slide ${slideNumber})`,
     );
 
     automizer.addSlide("template", slideNumber, (addedSlide: ISlide) => {
-      // Populate text placeholders if we have a layout definition
-      if (layout) {
-        populatePlaceholders(addedSlide, layout, slideData, i);
-      } else {
-        // Best effort: try common placeholder names for fallback
-        try {
-          addedSlide.modifyElement("Title", modify.setText(slideData.slideTitle));
-        } catch {
-          /* placeholder may not exist */
-        }
-        try {
-          if (slideData.subheading) {
-            addedSlide.modifyElement(
-              "Subtitle",
-              modify.setText(slideData.subheading),
-            );
-          }
-        } catch {
-          /* placeholder may not exist */
-        }
-        try {
-          addedSlide.modifyElement(
-            "Body",
-            modify.setText(slideData.bulletPoints.join("\n")),
-          );
-        } catch {
-          /* placeholder may not exist */
-        }
-      }
+      populatePlaceholders(addedSlide, layout, slideData, i);
 
       // Image replacement: find image placeholder and swap relation target
-      if (layout) {
-        const imagePlaceholder = layout.placeholders.find(
-          (p) => p.type === "image",
-        );
-        const imageFilename = loadedImages.get(i);
-        if (imagePlaceholder && imageFilename) {
-          try {
-            addedSlide.modifyElement(
-              imagePlaceholder.name,
-              modify.setRelationTarget(imageFilename) as unknown as ShapeModificationCallback,
-            );
-          } catch {
-            logger.warn(
-              `Image placeholder "${imagePlaceholder.name}" not found on slide ${i + 1}`,
-            );
-          }
+      const imagePlaceholder = layout.placeholders.find(
+        (p) => p.type === "image",
+      );
+      const imageFilename = loadedImages.get(i);
+      if (imagePlaceholder && imageFilename) {
+        try {
+          addedSlide.modifyElement(
+            imagePlaceholder.name,
+            modify.setRelationTarget(imageFilename) as unknown as ShapeModificationCallback,
+          );
+        } catch {
+          logger.warn(
+            `Image placeholder "${imagePlaceholder.name}" not found on slide ${i + 1}`,
+          );
         }
       }
     });
