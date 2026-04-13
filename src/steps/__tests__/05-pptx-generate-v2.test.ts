@@ -17,8 +17,11 @@ const mocks = vi.hoisted(() => {
     __setTableData: data,
   }));
   const setRelationTargetMock = vi.fn((t: string) => ({ __setRel: t }));
+  const constructorOptsMock = vi.fn();
   class AutomizerMock {
-    constructor(_opts: unknown) {}
+    constructor(opts: unknown) {
+      constructorOptsMock(opts);
+    }
     loadRoot = loadRootMock;
     load = loadMock;
     loadMedia = loadMediaMock;
@@ -35,6 +38,7 @@ const mocks = vi.hoisted(() => {
     setTableMock,
     setTableDataMock,
     setRelationTargetMock,
+    constructorOptsMock,
     AutomizerMock,
   };
 });
@@ -243,5 +247,44 @@ describe("generatePptxV2 — table content block rendering", () => {
 
     // Callback should execute without throwing
     expect(() => runCapturedCallback()).not.toThrow();
+  });
+});
+
+describe("generatePptxV2 — Automizer constructor options", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("passes removeExistingSlides: true to the Automizer constructor so the root template's existing slides are stripped before addSlide", async () => {
+    const presentation: Presentation = {
+      title: "Deck",
+      totalDurationSeconds: 60,
+      slides: [
+        {
+          slideTitle: "Only",
+          narration: "",
+          bulletPoints: ["x"],
+          layoutStyle: "standard",
+          imageQuery: "",
+          durationSeconds: 60,
+          templateLayoutId: "table-layout",
+        },
+      ],
+    };
+
+    await generatePptxV2({
+      presentation,
+      imagePaths: [],
+      config: makeConfig(),
+      tempDir: "/tmp",
+      templatePptxPath: "/tmp/template.pptx",
+      templateManifest: makeManifestWithTable(),
+    });
+
+    expect(mocks.constructorOptsMock).toHaveBeenCalledTimes(1);
+    const opts = mocks.constructorOptsMock.mock.calls[0]?.[0] as {
+      removeExistingSlides?: boolean;
+    };
+    expect(opts.removeExistingSlides).toBe(true);
   });
 });

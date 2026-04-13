@@ -243,6 +243,7 @@ export async function generatePptxV2(
   const automizer = new Automizer({
     templateDir,
     outputDir: tempDir,
+    removeExistingSlides: true,
   });
 
   // Load the template as both root (base presentation) and source (slide provider)
