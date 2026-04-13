@@ -26,7 +26,7 @@ export const SlideSchema = z.object({
 
 export const PresentationSchema = z.object({
   title: z.string(),
-  slides: z.array(SlideSchema).min(3).max(25),
+  slides: z.array(SlideSchema).min(3).max(30),
   totalDurationSeconds: z.number(),
   narrativeArc: z.string().optional().describe("Summary of the pedagogical flow across all slides"),
 });

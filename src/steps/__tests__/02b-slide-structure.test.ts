@@ -270,7 +270,7 @@ describe("extractSlideStructure", () => {
       await expect(
         extractSlideStructure(defaultOptions({ narrationScript: narration })),
       ).rejects.toThrow(
-        /Slide count \(3\) does not match narration section count \(5\) after 3 attempts/,
+        /Slide count too low.*after 3 attempts/,
       );
       expect(mockCallLLM).toHaveBeenCalledTimes(3);
     });
@@ -299,22 +299,7 @@ describe("extractSlideStructure", () => {
     });
   });
 
-  describe("narration mismatch warning", () => {
-    it("calls logger.warn when LLM alters narration text but still returns result", async () => {
-      const narration = makeNarrationScript(3);
-      const responseObj = JSON.parse(makeValidPresentationResponse(narration));
-      responseObj.slides[1].narration = "Altered narration text by the LLM";
-      mockCallLLM.mockResolvedValueOnce(JSON.stringify(responseObj));
-
-      const result = await extractSlideStructure(defaultOptions({ narrationScript: narration }));
-
-      expect(result.title).toBe("Test Presentation");
-      expect(result.slides).toHaveLength(3);
-      expect(mockWarn).toHaveBeenCalledWith(
-        expect.stringContaining("narration differs from section"),
-      );
-    });
-
+  describe("narration mismatch warning (removed)", () => {
     it("does not warn when all narrations match exactly", async () => {
       const narration = makeNarrationScript(3);
       mockCallLLM.mockResolvedValueOnce(
@@ -451,6 +436,163 @@ describe("extractSlideStructure", () => {
       );
 
       expect(mockReadFile).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("variable slide count (splitting sections across slides)", () => {
+    function makeExpandedPresentationResponse(
+      narration: NarrationScript,
+      slideCount: number,
+    ): string {
+      // Distribute slides across sections: each section contributes >=1 slide.
+      // Sections with index < (slideCount - sections.length) get an extra split slide.
+      const sectionCount = narration.sections.length;
+      const extraSlides = slideCount - sectionCount;
+      const slides: Array<{
+        slideTitle: string;
+        narration: string;
+        bulletPoints: string[];
+        layoutStyle: string;
+        imageQuery: string;
+        durationSeconds: number;
+      }> = [];
+
+      for (let i = 0; i < sectionCount; i++) {
+        const section = narration.sections[i];
+        const splits = i < extraSlides ? 2 : 1;
+        for (let j = 0; j < splits; j++) {
+          slides.push({
+            slideTitle: `Slide from section ${i + 1} part ${j + 1}`,
+            narration: `Chunk ${j + 1} of ${section.narration}`,
+            bulletPoints: ["point a", "point b"],
+            layoutStyle: "standard",
+            imageQuery: "img",
+            durationSeconds: Math.round(section.durationSeconds / splits),
+          });
+        }
+      }
+
+      return JSON.stringify({
+        title: narration.title,
+        narrativeArc: narration.narrativeArc,
+        slides,
+        totalDurationSeconds: narration.totalDurationSeconds,
+      });
+    }
+
+    it("accepts LLM response with MORE slides than sections (9 sections -> 12 slides)", async () => {
+      const narration = makeNarrationScript(9);
+      mockCallLLM.mockResolvedValue(
+        makeExpandedPresentationResponse(narration, 12),
+      );
+
+      const result = await extractSlideStructure(
+        defaultOptions({ narrationScript: narration }),
+      );
+
+      expect(result.slides).toHaveLength(12);
+      expect(mockCallLLM).toHaveBeenCalledTimes(1);
+    });
+
+    it("rejects LLM response with FEWER slides than sections (9 sections -> 5 slides)", async () => {
+      const narration = makeNarrationScript(9);
+      const tooFew = makeNarrationScript(5);
+      mockCallLLM.mockResolvedValue(makeValidPresentationResponse(tooFew));
+
+      await expect(
+        extractSlideStructure(defaultOptions({ narrationScript: narration })),
+      ).rejects.toThrow();
+      expect(mockCallLLM).toHaveBeenCalledTimes(3);
+    });
+
+    it("rejects LLM response exceeding upper bound of 30 slides", async () => {
+      const narration = makeNarrationScript(9);
+      // Build a 31-slide response: split section 0 into 23 chunks, rest 1:1.
+      const slides = [] as Array<Record<string, unknown>>;
+      for (let j = 0; j < 23; j++) {
+        slides.push({
+          slideTitle: `Section 1 part ${j + 1}`,
+          narration: `chunk ${j}`,
+          bulletPoints: ["p"],
+          layoutStyle: "standard",
+          imageQuery: "i",
+          durationSeconds: 10,
+        });
+      }
+      for (let i = 1; i < 9; i++) {
+        slides.push({
+          slideTitle: `Slide ${i}`,
+          narration: narration.sections[i].narration,
+          bulletPoints: ["p"],
+          layoutStyle: "standard",
+          imageQuery: "i",
+          durationSeconds: narration.sections[i].durationSeconds,
+        });
+      }
+      expect(slides).toHaveLength(31);
+      const response = JSON.stringify({
+        title: narration.title,
+        narrativeArc: narration.narrativeArc,
+        slides,
+        totalDurationSeconds: narration.totalDurationSeconds,
+      });
+      mockCallLLM.mockResolvedValue(response);
+
+      await expect(
+        extractSlideStructure(defaultOptions({ narrationScript: narration })),
+      ).rejects.toThrow();
+    });
+
+    it("prompt does NOT contain the forced-count phrase 'produce exactly'", async () => {
+      const narration = makeNarrationScript(9);
+      mockCallLLM.mockResolvedValue(
+        makeExpandedPresentationResponse(narration, 12),
+      );
+
+      await extractSlideStructure(
+        defaultOptions({ narrationScript: narration }),
+      );
+
+      const systemPrompt = mockCallLLM.mock.calls[0][1] as string;
+      const userMessage = (mockCallLLM.mock.calls[0][0] as Array<{
+        content: string;
+      }>)[0].content;
+      expect(systemPrompt).not.toContain("produce exactly");
+      expect(userMessage).not.toContain("produce exactly");
+    });
+
+    it("prompt contains the verbatim permission phrase 'You may split'", async () => {
+      const narration = makeNarrationScript(9);
+      mockCallLLM.mockResolvedValue(
+        makeExpandedPresentationResponse(narration, 12),
+      );
+
+      await extractSlideStructure(
+        defaultOptions({ narrationScript: narration }),
+      );
+
+      const systemPrompt = mockCallLLM.mock.calls[0][1] as string;
+      const userMessage = (mockCallLLM.mock.calls[0][0] as Array<{
+        content: string;
+      }>)[0].content;
+      const combined = systemPrompt + "\n" + userMessage;
+      expect(combined).toContain("You may split");
+    });
+
+    it("does NOT warn about narration mismatch when slide narration differs from section narration (splitting is expected)", async () => {
+      const narration = makeNarrationScript(9);
+      mockCallLLM.mockResolvedValue(
+        makeExpandedPresentationResponse(narration, 12),
+      );
+
+      await extractSlideStructure(
+        defaultOptions({ narrationScript: narration }),
+      );
+
+      const narrationWarns = mockWarn.mock.calls.filter(([msg]) =>
+        typeof msg === "string" && msg.includes("narration differs"),
+      );
+      expect(narrationWarns).toHaveLength(0);
     });
   });
 

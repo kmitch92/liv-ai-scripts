@@ -120,7 +120,7 @@ function buildUserMessage(
     ? `Slide structure notes from the content author:\n---\n${slideStructureNotes}\n---\n\n`
     : "";
 
-  return `${notesBlock}Extract a visual slide structure from the following narration script. There are ${narrationScript.sections.length} sections — produce exactly ${narrationScript.sections.length} slides.
+  return `${notesBlock}Extract a visual slide structure from the following narration script. The narration has ${narrationScript.sections.length} sections. You may split any section's narration across multiple slides — the choice of layout composition is free, within these bounds: at least ${narrationScript.sections.length} slides (no section may be dropped or merged) and at most 30 slides total.
 
 Presentation title: ${narrationScript.title}
 Narrative arc: ${narrationScript.narrativeArc}
@@ -252,12 +252,17 @@ export async function extractSlideStructure(
 
     const presentation = parseResult.data;
 
-    // Validate slide count matches narration section count
-    if (presentation.slides.length !== expectedSlideCount) {
+    // Validate slide count is within bounds: at least expectedSlideCount (no section dropped/merged), at most 30.
+    const slideCount = presentation.slides.length;
+    const tooFew = slideCount < expectedSlideCount;
+    const tooMany = slideCount > 30;
+    if (tooFew || tooMany) {
+      const errMsg = tooFew
+        ? `Slide count too low: got ${slideCount} slides but narration has ${expectedSlideCount} sections. No section may be dropped or merged — produce at least ${expectedSlideCount} slides.`
+        : `Slide count too high: got ${slideCount} slides — the maximum is 30.`;
       if (attempt < MAX_RETRIES) {
-        const errMsg = `Slide count mismatch: got ${presentation.slides.length} slides but narration has ${expectedSlideCount} sections. Each section must map to exactly 1 slide.`;
         logger.warn(
-          `Attempt ${attempt + 1}: slide count ${presentation.slides.length} != section count ${expectedSlideCount}, retrying...`,
+          `Attempt ${attempt + 1}: ${errMsg} retrying...`,
         );
         messages.push(
           { role: "assistant", content: lastRawResponse },
@@ -269,7 +274,7 @@ export async function extractSlideStructure(
         continue;
       }
       throw new Error(
-        `Slide count (${presentation.slides.length}) does not match narration section count (${expectedSlideCount}) after ${MAX_RETRIES + 1} attempts`,
+        `${errMsg} after ${MAX_RETRIES + 1} attempts`,
       );
     }
 
@@ -283,17 +288,6 @@ export async function extractSlideStructure(
             `Unknown templateLayoutId "${layoutId}" on slide ${i + 1}. Valid ids: ${Array.from(validIds).join(", ")}`,
           );
         }
-      }
-    }
-
-    // Warn if narration text was altered (non-fatal)
-    for (let i = 0; i < expectedSlideCount; i++) {
-      const sectionNarration = narrationScript.sections[i].narration;
-      const slideNarration = presentation.slides[i].narration;
-      if (slideNarration !== sectionNarration) {
-        logger.warn(
-          `Slide ${i + 1} narration differs from section "${narrationScript.sections[i].sectionLabel}" — narration may have been altered by LLM`,
-        );
       }
     }
 
