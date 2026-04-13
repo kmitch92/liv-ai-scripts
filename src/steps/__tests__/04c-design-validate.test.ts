@@ -52,6 +52,7 @@ function makeConfig(overrides?: {
       enableCritic: false,
       enableDesignValidation: false,
       useTemplateEngine: false,
+      enableImageQueryGeneration: false,
     },
   };
 }

@@ -116,6 +116,7 @@ function makeConfig(): Config {
       enableCritic: false,
       enableDesignValidation: false,
       useTemplateEngine: true,
+      enableImageQueryGeneration: false,
     },
   };
 }
@@ -247,6 +248,40 @@ describe("generatePptxV2 — table content block rendering", () => {
 
     // Callback should execute without throwing
     expect(() => runCapturedCallback()).not.toThrow();
+  });
+});
+
+describe("generatePptxV2 — unresolvable layout", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("H. throws a descriptive error when a slide has no resolvable layout (no templateLayoutId, no layoutStyle) instead of silently using fallback slide 1", async () => {
+    const presentation: Presentation = {
+      title: "Deck",
+      totalDurationSeconds: 60,
+      slides: [
+        {
+          slideTitle: "Orphan",
+          narration: "",
+          bulletPoints: ["x"],
+          imageQuery: "",
+          durationSeconds: 60,
+          // Deliberately NO templateLayoutId and NO layoutStyle
+        } as unknown as Presentation["slides"][number],
+      ],
+    };
+
+    await expect(
+      generatePptxV2({
+        presentation,
+        imagePaths: [],
+        config: makeConfig(),
+        tempDir: "/tmp",
+        templatePptxPath: "/tmp/template.pptx",
+        templateManifest: makeManifestWithTable(),
+      }),
+    ).rejects.toThrow(/layout|templateLayoutId|resolv/i);
   });
 });
 

@@ -1,9 +1,10 @@
 import path from "node:path";
 import { mkdir, writeFile, copyFile, access } from "node:fs/promises";
 import sharp from "sharp";
-import type { Slide } from "../types/index.js";
+import type { Slide, TemplateManifest } from "../types/index.js";
 import { startStep, succeedStep, failStep, warn } from "../lib/logger.js";
 import { sanitizeTopic } from "../lib/sanitize-topic.js";
+import { getLayoutById } from "../lib/template-manifest.js";
 
 interface ImageFetchOptions {
   slides: Slide[];
@@ -15,6 +16,18 @@ interface ImageFetchOptions {
     text: string;
   };
   topic: string;
+  templateManifest?: TemplateManifest;
+}
+
+function slideNeedsImage(
+  slide: Slide,
+  manifest: TemplateManifest | undefined,
+): boolean {
+  if (!manifest) return true;
+  if (!slide.templateLayoutId) return true;
+  const layout = getLayoutById(manifest, slide.templateLayoutId);
+  if (!layout) return true;
+  return layout.placeholders.some((p) => p.type === "image");
 }
 
 function getOutputImagesDir(topic: string): string {
@@ -61,6 +74,12 @@ export async function fetchImages(
   }
 
   const tasks = slides.map(async (slide, index) => {
+    if (!slideNeedsImage(slide, options.templateManifest)) {
+      paths[index] = "";
+      completed++;
+      startStep(`Fetching images (${completed}/${slides.length})...`);
+      return;
+    }
     await acquire();
     try {
       const outputPath = path.join(imagesDir, `slide-${index}.jpg`);
