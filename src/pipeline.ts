@@ -16,6 +16,7 @@ import { extractSlideStructure } from "./steps/02b-slide-structure.js";
 import { phoneticsPass } from "./steps/02c-phonetics-pass.js";
 import { criticRefine } from "./steps/02d-critic-refine.js";
 import { fetchImages } from "./steps/03-image-fetch.js";
+import { generateImageQueries } from "./steps/03a-image-queries.js";
 import { generateTts } from "./steps/04-tts-generate.js";
 import { designSlideContent } from "./steps/04b-slide-content-design.js";
 import { validateDesign } from "./steps/04c-design-validate.js";
@@ -131,6 +132,23 @@ export async function runPipeline(options: PipelineOptions): Promise<string> {
       ttsPresentation = presentation;
     }
 
+    // 3a. Refine imageQuery values via LLM (feature-flagged; requires manifest)
+    if (
+      config.pipeline.enableImageQueryGeneration &&
+      templateManifest
+    ) {
+      try {
+        presentation = await generateImageQueries({
+          presentation,
+          templateManifest,
+        });
+      } catch (err) {
+        logger.warn(
+          `Image query generation threw; keeping original imageQuery values: ${String(err)}`,
+        );
+      }
+    }
+
     // 3. Fetch images
     let imagePaths: string[];
     try {
@@ -139,6 +157,7 @@ export async function runPipeline(options: PipelineOptions): Promise<string> {
         tempDir,
         brandColors: config.branding.colors,
         topic: args.topic,
+        templateManifest,
       });
     } catch (err) {
       logger.failStep("Image fetching failed");

@@ -43,5 +43,6 @@ export const ConfigSchema = z.object({
     enableCritic: z.boolean().default(false).describe("Enable AI critic pass on generated content"),
     enableDesignValidation: z.boolean().default(false).describe("Enable design constraint validation"),
     useTemplateEngine: z.boolean().default(false).describe("Use template manifest for slide layout selection"),
+    enableImageQueryGeneration: z.boolean().default(false).describe("Use an LLM pass to refine per-slide imageQuery values"),
   }).default({}),
 });

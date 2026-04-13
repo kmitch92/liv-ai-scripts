@@ -49,6 +49,7 @@
     "useIterativeContent": true,
     "enableCritic": false,
     "enableDesignValidation": false,
-    "useTemplateEngine": true
+    "useTemplateEngine": true,
+    "enableImageQueryGeneration": true
   }
 }

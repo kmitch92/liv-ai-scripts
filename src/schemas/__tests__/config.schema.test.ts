@@ -36,6 +36,7 @@ describe("ConfigSchema", () => {
         enableCritic: false,
         enableDesignValidation: false,
         useTemplateEngine: false,
+        enableImageQueryGeneration: false,
       });
     });
 
@@ -81,6 +82,21 @@ describe("ConfigSchema", () => {
       expect(result.pipeline.enableCritic).toBe(false);
       expect(result.pipeline.enableDesignValidation).toBe(false);
       expect(result.pipeline.useTemplateEngine).toBe(false);
+    });
+
+    it("parses config with pipeline.enableImageQueryGeneration: true", () => {
+      const result = ConfigSchema.parse({
+        ...existingConfig,
+        pipeline: {
+          enableImageQueryGeneration: true,
+        },
+      });
+      expect(result.pipeline.enableImageQueryGeneration).toBe(true);
+    });
+
+    it("defaults pipeline.enableImageQueryGeneration to false when omitted", () => {
+      const result = ConfigSchema.parse(existingConfig);
+      expect(result.pipeline.enableImageQueryGeneration).toBe(false);
     });
   });
 
