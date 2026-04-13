@@ -13,7 +13,8 @@
       "heading": "Arial",
       "body": "Calibri"
     },
-    "templateManifest": "./assets/templates/template-manifest.json"
+    "templateManifest": "templates/template-manifest.json",
+    "templatePptx": "templates/power-and-conflict.pptx"
   },
   "elevenlabs": {
     "voiceId": "PGXUlrgi0Tgxv5ovt9ip",
@@ -35,16 +36,11 @@
     "durationMinutes": 8,
     "phoneticsOverrides": [
       {
-        "from": "Ozymandias",
-        "to": "Ozzy-man-dee-us"
-      },
-      {
         "from": "Bysshe",
         "to": "Bish"
-      },
-      {
-        "from": "Ramesses",
-        "to": "Ram-eh-seez"
+      }, {
+        "from": "ozymandias",
+        "to": "ozzymandias"
       }
     ],
     "slideStructureNotes": "./assets/prompts/powerpoint-notes.txt"
