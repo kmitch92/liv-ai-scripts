@@ -206,3 +206,29 @@ Two providers are supported:
 ## License
 
 MIT
+
+---
+
+## Local UI
+
+A localhost-only React UI is available for editing every system prompt and kicking off pipeline runs.
+
+### First-time setup
+
+    npm run ui:install
+
+### Launch
+
+    npm run ui
+
+This starts:
+- `ui-server` (Fastify) on http://127.0.0.1:4317 — prompt / config / run API
+- Vite dev server on http://localhost:5173 — open this in the browser
+
+### What you can do
+
+- **Prompts** — edit every system prompt the pipeline uses, including config-level prompts (`script.systemPrompt`, `script.speakerIdentity`, `script.targetAudience`) and step-level prompts extracted to `assets/prompts/*.md`. Each prompt shows a purpose description explaining what it controls.
+- **Configs** — manage named config presets under `configs/`. Clone `default` to experiment without touching the canonical config. All writes are validated against `ConfigSchema` before hitting disk.
+- **Run** — pick a preset + topic, confirm the cost warning, and watch the pipeline's logs stream live over SSE. One run at a time (enforced server-side). Runs call paid LLM, TTS, and image APIs — real money; the UI gates this behind a type-to-confirm modal.
+
+Run artifacts land in `output/<topic>/<timestamp>/` as today; run metadata and logs also persist under `runs/`.
