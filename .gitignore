@@ -2,6 +2,8 @@ node_modules
 dist
 .env
 output/
+runs/
 *.mp3
 *.mp4
 *.m4a
+!configs/
