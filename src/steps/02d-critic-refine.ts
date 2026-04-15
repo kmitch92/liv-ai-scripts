@@ -5,6 +5,7 @@ import type { Critique, NarrationScript, Presentation } from "../types/index.js"
 import * as logger from "../lib/logger.js";
 import { callLLM } from "../lib/llm.js";
 import type { ChatMessage } from "../lib/llm.js";
+import { loadPrompt } from "../lib/prompts.js";
 
 const MAX_REFINE_ITERATIONS = 2;
 const PASSING_SCORE = 7;
@@ -17,36 +18,8 @@ export interface CriticRefineOptions {
   client?: Anthropic;
 }
 
-function buildCriticSystemPrompt(): string {
-  return `You are a presentation quality reviewer. Your task is to evaluate a slide presentation against its narration script and source material.
-
-Evaluate across these 5 dimensions (each scored 0-10):
-1. contentDensity — How substantial is the content on each slide? Are slides too sparse or appropriately rich?
-2. narrationAlignment — How well do the slides reflect and support the narration script? Do slide titles, bullet points, and quotes match what is being spoken?
-3. visualVariety — How varied are the layout styles across slides? Is there a good mix of standard, quote-focus, two-column, key-point, and full-image layouts?
-4. informationHierarchy — How clear is the information hierarchy within each slide? Are titles, subheadings, bullet points, and quotes used effectively?
-5. quoteCoverage — How well are source quotes from the reference material incorporated into the slides?
-
-Also compute an overallScore (0-10) as a weighted assessment of all dimensions.
-
-For each slide that has issues, provide a specific suggestion for improvement.
-
-Output ONLY valid JSON matching this schema. No markdown fencing, no commentary.
-
-{
-  "scores": {
-    "contentDensity": number,
-    "narrationAlignment": number,
-    "visualVariety": number,
-    "informationHierarchy": number,
-    "quoteCoverage": number
-  },
-  "overallScore": number,
-  "suggestions": [
-    { "slideIndex": number, "issue": "string", "suggestion": "string" }
-  ],
-  "summary": "string - brief overall assessment"
-}`;
+async function buildCriticSystemPrompt(): Promise<string> {
+  return loadPrompt("02d-critic-refine.critic");
 }
 
 function buildCriticUserMessage(
@@ -66,18 +39,8 @@ ${contextText ? `SOURCE MATERIAL:\n---\n${contextText}\n---\n` : ""}
 Return your structured critique JSON now.`;
 }
 
-function buildRefineSystemPrompt(): string {
-  return `You are a presentation improver. Given a presentation and a quality critique, improve the presentation to address the identified weaknesses.
-
-CRITICAL RULES:
-- You MUST preserve the "narration" field of every slide EXACTLY as-is. Do NOT modify narration text in any way.
-- You MUST preserve the same number of slides and the same totalDurationSeconds.
-- You MUST preserve each slide's durationSeconds unchanged.
-- Focus improvements on: slideTitle, bulletPoints, keyQuote, subheading, layoutStyle, imageQuery, contentBlocks, imageConcept, and templateLayoutId.
-- Address the specific suggestions from the critique.
-- Improve content density, visual variety, information hierarchy, and quote coverage where noted.
-
-Output ONLY valid JSON matching the Presentation schema. No markdown fencing, no commentary.`;
+async function buildRefineSystemPrompt(): Promise<string> {
+  return loadPrompt("02d-critic-refine.refine");
 }
 
 function buildRefineUserMessage(
@@ -189,7 +152,7 @@ async function getCritique(
 
   return callLLMWithRetry(
     messages,
-    buildCriticSystemPrompt(),
+    await buildCriticSystemPrompt(),
     CritiqueSchema,
     "Critic",
     client,
@@ -210,7 +173,7 @@ async function refinePresentation(
 
   return callLLMWithRetry(
     messages,
-    buildRefineSystemPrompt(),
+    await buildRefineSystemPrompt(),
     PresentationSchema,
     "Refine",
     client,

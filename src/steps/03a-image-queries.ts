@@ -9,6 +9,7 @@ import * as logger from "../lib/logger.js";
 import { callLLM } from "../lib/llm.js";
 import type { ChatMessage } from "../lib/llm.js";
 import { getLayoutById } from "../lib/template-manifest.js";
+import { loadPrompt } from "../lib/prompts.js";
 
 export interface GenerateImageQueriesOptions {
   presentation: Presentation;
@@ -22,15 +23,6 @@ const QueryItemSchema = z.object({
 });
 const QueryArraySchema = z.array(QueryItemSchema);
 
-const SYSTEM_PROMPT = `You are a visual search query specialist. For each slide, produce a concrete, concise stock-image search query (2-5 words) that favours subject + mood/composition modifiers.
-
-Rules:
-- strip proper nouns (poem titles, author names, character names, place names tied to specific works)
-- prefer concrete visual nouns (e.g. "crumbling stone statue", "misty forest path", "stormy ocean horizon")
-- 2 to 5 words per query
-- no punctuation except spaces and hyphens
-- output ONLY valid JSON: an array of objects { "slideIndex": number, "query": string }
-- no markdown fences, no commentary`;
 
 function slideHasImagePlaceholder(
   slide: Slide,
@@ -91,6 +83,8 @@ export async function generateImageQueries(
 
   const userPrompt = buildUserPrompt(presentation.slides, imageIndices);
   const messages: ChatMessage[] = [{ role: "user", content: userPrompt }];
+
+  const SYSTEM_PROMPT = await loadPrompt("03a-image-queries");
 
   let parsed = tryParse(await callLLM(messages, SYSTEM_PROMPT, client));
 
