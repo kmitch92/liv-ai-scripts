@@ -10,13 +10,14 @@ interface ArchiveOptions {
   presentation: Presentation;
   pptxPath: string;
   videoPath: string;
+  silentVideoPath?: string;
   audioPaths: string[];
   topic: string;
   outputPath?: string;
 }
 
 export async function createArchive(options: ArchiveOptions): Promise<string> {
-  const { presentation, pptxPath, videoPath, audioPaths, topic, outputPath } =
+  const { presentation, pptxPath, videoPath, silentVideoPath, audioPaths, topic, outputPath } =
     options;
 
   startStep("Creating archive...");
@@ -39,6 +40,11 @@ export async function createArchive(options: ArchiveOptions): Promise<string> {
 
     // Video
     archive.file(videoPath, { name: "video.mp4" });
+
+    // Silent video (no audio track)
+    if (silentVideoPath) {
+      archive.file(silentVideoPath, { name: "video-silent.mp4" });
+    }
 
     // Script JSON
     archive.append(JSON.stringify(presentation, null, 2), {

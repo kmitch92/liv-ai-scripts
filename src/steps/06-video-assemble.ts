@@ -24,7 +24,7 @@ interface VideoAssembleOptions {
 
 export async function assembleVideo(
   options: VideoAssembleOptions,
-): Promise<string> {
+): Promise<{ videoPath: string; silentVideoPath: string }> {
   const {
     pptxPath,
     imagePaths,
@@ -60,8 +60,14 @@ export async function assembleVideo(
   const outputPath = path.join(tempDir, "video.mp4");
   await runFfmpeg(concatFilePath, concatAudioPath, outputPath);
 
+  // Generate a silent copy (video track only, no audio)
+  const silentOutputPath = path.join(tempDir, "video-silent.mp4");
+  await execFile("ffmpeg", ["-y", "-i", outputPath, "-c:v", "copy", "-an", silentOutputPath], {
+    timeout: 300_000,
+  });
+
   succeedStep("Video assembled");
-  return outputPath;
+  return { videoPath: outputPath, silentVideoPath: silentOutputPath };
 }
 
 // ---------------------------------------------------------------------------

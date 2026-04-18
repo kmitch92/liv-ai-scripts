@@ -239,8 +239,9 @@ export async function runPipeline(options: PipelineOptions): Promise<string> {
 
     // 6. Assemble video
     let videoPath: string;
+    let silentVideoPath: string;
     try {
-      videoPath = await assembleVideo({
+      const videoResult = await assembleVideo({
         pptxPath,
         imagePaths,
         audioPaths,
@@ -249,6 +250,8 @@ export async function runPipeline(options: PipelineOptions): Promise<string> {
         config,
         tempDir,
       });
+      videoPath = videoResult.videoPath;
+      silentVideoPath = videoResult.silentVideoPath;
     } catch (err) {
       logger.failStep("Video assembly failed");
       throw err;
@@ -261,6 +264,7 @@ export async function runPipeline(options: PipelineOptions): Promise<string> {
         presentation,
         pptxPath,
         videoPath,
+        silentVideoPath,
         audioPaths,
         topic: args.topic,
         outputPath: args.output,
