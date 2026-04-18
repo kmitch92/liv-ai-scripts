@@ -20,7 +20,7 @@ export const PromptListSchema = z.array(PromptEntrySchema);
 
 export const ConfigMetaSchema = z.object({
   name: z.string(),
-  mtime: z.string(),
+  mtime: z.number(),
 });
 export type ConfigMeta = z.infer<typeof ConfigMetaSchema>;
 
