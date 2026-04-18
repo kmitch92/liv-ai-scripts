@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { api } from "../lib/api";
+import { api, recutVideo } from "../lib/api";
 
 interface LogLine {
   type: "stdout" | "stderr" | "exit";
@@ -213,6 +213,88 @@ export default function RunConsole({ runId }: Props) {
           </div>
         )}
       </div>
+
+      {!running && <RecutSection runId={runId} meta={meta} />}
+    </div>
+  );
+}
+
+function RecutSection({ runId, meta }: { runId: string; meta: typeof import("../lib/schemas").RunDetailSchema._type | undefined }) {
+  const qc = useQueryClient();
+  const [file, setFile] = useState<File | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const recut = useMutation({
+    mutationFn: () => recutVideo(runId, file!),
+    onSuccess: () => {
+      toast.success("Recut complete");
+      setFile(null);
+      if (inputRef.current) inputRef.current.value = "";
+      qc.invalidateQueries({ queryKey: ["run", runId] });
+    },
+    onError: (e: Error) => {
+      toast.error(e.message);
+    },
+  });
+
+  const recutPaths = meta?.recutPaths as { video: string; silentVideo: string } | undefined;
+
+  return (
+    <div className="border-t border-amber-800/40 bg-amber-950/20 px-6 py-4 space-y-3">
+      <div>
+        <h3 className="text-sm font-semibold text-amber-300">Recut Video</h3>
+        <p className="text-xs text-amber-200/60 mt-0.5">
+          Upload an edited PPTX to re-render the video using the original audio track. No API costs.
+        </p>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="flex items-center gap-2 cursor-pointer px-3 py-1.5 rounded bg-slate-800 border border-amber-700/40 text-sm text-slate-200 hover:bg-slate-700">
+          <span>{file ? file.name : "Choose .pptx file"}</span>
+          <input
+            ref={inputRef}
+            type="file"
+            accept=".pptx"
+            className="hidden"
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          />
+        </label>
+
+        <button
+          className="px-4 py-1.5 rounded bg-amber-600 text-white text-sm font-medium hover:bg-amber-500 disabled:opacity-40 disabled:cursor-not-allowed"
+          disabled={!file || recut.isPending}
+          onClick={() => recut.mutate()}
+        >
+          {recut.isPending ? "Recutting\u2026" : "Recut"}
+        </button>
+      </div>
+
+      {recutPaths && (
+        <div className="flex gap-2 pt-1">
+          <button
+            className="px-3 py-1.5 rounded bg-amber-700 text-white text-sm hover:bg-amber-600"
+            onClick={() =>
+              window.open(
+                `/api/runs/${encodeURIComponent(runId)}/recut/download?type=video`,
+                "_blank"
+              )
+            }
+          >
+            Download Recut Video
+          </button>
+          <button
+            className="px-3 py-1.5 rounded bg-amber-700 text-white text-sm hover:bg-amber-600"
+            onClick={() =>
+              window.open(
+                `/api/runs/${encodeURIComponent(runId)}/recut/download?type=silent`,
+                "_blank"
+              )
+            }
+          >
+            Download Recut (Silent)
+          </button>
+        </div>
+      )}
     </div>
   );
 }

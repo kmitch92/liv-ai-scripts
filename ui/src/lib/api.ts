@@ -88,4 +88,17 @@ export const api = {
     }),
 };
 
+export async function recutVideo(runId: string, pptxFile: File): Promise<void> {
+  const form = new FormData();
+  form.append("pptx", pptxFile);
+  const res = await fetch(`/api/runs/${encodeURIComponent(runId)}/recut`, {
+    method: "POST",
+    body: form,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Recut failed" }));
+    throw new Error(err.error || "Recut failed");
+  }
+}
+
 export type { PromptEntry, ConfigDoc };

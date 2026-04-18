@@ -41,6 +41,10 @@ export const RunMetaSchema = z.object({
   exitCode: z.number().nullable().optional(),
   archivePath: z.string().nullable().optional(),
   output: z.string().optional(),
+  recutPaths: z.object({
+    video: z.string(),
+    silentVideo: z.string(),
+  }).optional(),
 }).passthrough();
 export type RunMeta = z.infer<typeof RunMetaSchema>;
 
