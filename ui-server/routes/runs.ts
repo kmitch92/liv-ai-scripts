@@ -124,11 +124,13 @@ export async function runsRoutes(app: FastifyInstance, paths: Paths, runs: RunMa
       ? resolve(paths.repoRoot, run.archivePath)
       : resolve(paths.repoRoot, "output");
     try {
-      const child = spawn("xdg-open", [target], { detached: true, stdio: "ignore" });
+      const opener =
+        process.platform === "win32" ? "explorer" : process.platform === "darwin" ? "open" : "xdg-open";
+      const child = spawn(opener, [target], { detached: true, stdio: "ignore" });
       child.unref();
       return { ok: true, target };
     } catch {
-      return reply.code(200).send({ ok: false, reason: "xdg-open unavailable" });
+      return reply.code(200).send({ ok: false, reason: "file opener unavailable" });
     }
   });
 }

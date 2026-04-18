@@ -1,4 +1,5 @@
 import path from "node:path";
+import os from "node:os";
 import { createWriteStream } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import archiver from "archiver";
@@ -94,5 +95,6 @@ function buildDefaultOutputPath(topic: string): string {
     pad(now.getSeconds()),
   ].join("");
 
-  return path.resolve("output", sanitized, timestamp, `${sanitized}.zip`);
+  const baseDir = path.join(os.homedir(), "Downloads", "liv-ai-outputs");
+  return path.resolve(baseDir, sanitized, timestamp, `${sanitized}.zip`);
 }

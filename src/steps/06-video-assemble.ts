@@ -8,6 +8,8 @@ import { startStep, succeedStep, info, warn } from "../lib/logger.js";
 
 const execFile = promisify(execFileCb);
 
+const FFMPEG = process.env.FFMPEG_PATH ?? "ffmpeg";
+
 const VIDEO_WIDTH = 1920;
 const VIDEO_HEIGHT = 1080;
 const SLIDE_GAP_SECONDS = 1.5;
@@ -62,7 +64,7 @@ export async function assembleVideo(
 
   // Generate a silent copy (video track only, no audio)
   const silentOutputPath = path.join(tempDir, "video-silent.mp4");
-  await execFile("ffmpeg", ["-y", "-i", outputPath, "-c:v", "copy", "-an", silentOutputPath], {
+  await execFile(FFMPEG, ["-y", "-i", outputPath, "-c:v", "copy", "-an", silentOutputPath], {
     timeout: 300_000,
   });
 
@@ -646,7 +648,7 @@ export async function concatenateAudio(
 
   // Generate silence file to insert between slides
   const silencePath = path.join(workDir, "silence.mp3");
-  await execFile("ffmpeg", [
+  await execFile(FFMPEG, [
     "-y",
     "-f",
     "lavfi",
@@ -662,11 +664,12 @@ export async function concatenateAudio(
   ]);
 
   // Interleave silence between each audio file
+  // Use forward slashes in concat file entries for Windows compatibility with ffmpeg.
   const entries: string[] = [];
   for (let i = 0; i < audioPaths.length; i++) {
-    entries.push(`file '${audioPaths[i]}'`);
+    entries.push(`file '${audioPaths[i].replace(/\\/g, "/")}'`);
     if (i < audioPaths.length - 1) {
-      entries.push(`file '${silencePath}'`);
+      entries.push(`file '${silencePath.replace(/\\/g, "/")}'`);
     }
   }
 
@@ -674,7 +677,7 @@ export async function concatenateAudio(
   const lines = entries.join("\n");
   await writeFile(listPath, lines, "utf-8");
 
-  await execFile("ffmpeg", [
+  await execFile(FFMPEG, [
     "-y",
     "-f",
     "concat",
@@ -702,14 +705,14 @@ export async function writeConcatFile(
   const lines: string[] = [];
 
   for (let i = 0; i < slideImages.length; i++) {
-    lines.push(`file '${slideImages[i]}'`);
+    lines.push(`file '${slideImages[i].replace(/\\/g, "/")}'`);
     const gap = i < slideImages.length - 1 ? SLIDE_GAP_SECONDS : 0;
     lines.push(`duration ${(durations[i] ?? 5) + gap}`);
   }
 
   // ffmpeg concat demuxer requires the last file repeated without duration
   if (slideImages.length > 0) {
-    lines.push(`file '${slideImages[slideImages.length - 1]}'`);
+    lines.push(`file '${slideImages[slideImages.length - 1].replace(/\\/g, "/")}'`);
   }
 
   await writeFile(concatFilePath, lines.join("\n"), "utf-8");
@@ -721,7 +724,7 @@ export async function runFfmpeg(
   outputPath: string,
 ): Promise<void> {
   await execFile(
-    "ffmpeg",
+    FFMPEG,
     [
       "-y",
       "-f",
