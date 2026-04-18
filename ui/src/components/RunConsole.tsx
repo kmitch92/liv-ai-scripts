@@ -127,12 +127,24 @@ export default function RunConsole({ runId }: Props) {
             </button>
           )}
           {finished && exitCode === 0 && (
-            <button
-              className="px-3 py-1.5 rounded bg-indigo-600 text-white text-sm hover:bg-indigo-500"
-              onClick={reveal}
-            >
-              Reveal archive
-            </button>
+            <>
+              <button
+                className="px-3 py-1.5 rounded bg-indigo-600 text-white text-sm hover:bg-indigo-500"
+                onClick={reveal}
+              >
+                Reveal archive
+              </button>
+              {meta?.archivePath && (
+                <button
+                  className="px-3 py-1.5 rounded bg-indigo-600 text-white text-sm hover:bg-indigo-500"
+                  onClick={() =>
+                    window.open(`/api/runs/${encodeURIComponent(runId)}/download`, "_blank")
+                  }
+                >
+                  Download
+                </button>
+              )}
+            </>
           )}
           <button
             className="px-3 py-1.5 rounded bg-slate-800 text-slate-200 text-sm hover:bg-slate-700"

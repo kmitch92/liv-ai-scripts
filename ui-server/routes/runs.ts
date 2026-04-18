@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { createReadStream, existsSync } from "node:fs";
+import { basename, resolve } from "node:path";
 import { z } from "zod";
 import type { Paths } from "../paths.js";
 import type { RunManager } from "../run-manager.js";
@@ -88,6 +88,20 @@ export async function runsRoutes(app: FastifyInstance, paths: Paths, runs: RunMa
       return reply.code(404).send({ error: "Run id does not match active run" });
     }
     return { ok: true };
+  });
+
+  app.get("/api/runs/:id/download", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const run = runs.getRun(id);
+    if (!run) return reply.code(404).send({ error: "Not found" });
+    if (!run.archivePath) return reply.code(404).send({ error: "No archive available" });
+    const absPath = resolve(paths.repoRoot, run.archivePath);
+    if (!existsSync(absPath)) return reply.code(404).send({ error: "Archive file not found on disk" });
+    const filename = basename(absPath);
+    void reply
+      .header("Content-Type", "application/zip")
+      .header("Content-Disposition", `attachment; filename="${filename}"`);
+    return reply.send(createReadStream(absPath));
   });
 
   app.post("/api/runs/:id/reveal", async (req, reply) => {
