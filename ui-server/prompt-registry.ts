@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { REPO_ROOT } from "./paths.js";
+import { getAppRoot } from "./paths.js";
 
 export type PromptSource =
   | { kind: "config"; jsonPath: string }
@@ -110,7 +110,7 @@ export function validateRegistry(): void {
     }
     ids.add(entry.id);
     if (entry.source.kind === "file") {
-      const abs = resolve(REPO_ROOT, entry.source.relPath);
+      const abs = resolve(getAppRoot(), entry.source.relPath);
       if (!existsSync(abs)) {
         throw new Error(
           `PROMPT_REGISTRY: entry '${entry.id}' references missing file: ${abs}`,
