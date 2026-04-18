@@ -71,3 +71,16 @@ export const SseEventSchema = z.object({
   timestamp: z.string().optional(),
 });
 export type SseEvent = z.infer<typeof SseEventSchema>;
+
+export const SettingsSchema = z.object({
+  keys: z.record(z.boolean()),
+  deps: z.record(z.boolean()),
+  outputPath: z.string(),
+  libreOfficeInstallUrl: z.string(),
+  libreOfficeInstallHint: z.string(),
+  isElectron: z.boolean(),
+});
+export type Settings = z.infer<typeof SettingsSchema>;
+
+export const DepsSchema = z.record(z.boolean());
+export type Deps = z.infer<typeof DepsSchema>;

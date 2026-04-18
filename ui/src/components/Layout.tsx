@@ -45,6 +45,9 @@ export default function Layout() {
                 )}
               </span>
             </NavLink>
+            <NavLink to="/settings" className={navClass}>
+              Settings
+            </NavLink>
           </nav>
         </div>
       </header>

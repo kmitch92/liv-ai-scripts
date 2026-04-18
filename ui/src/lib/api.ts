@@ -1,13 +1,17 @@
 import {
   ConfigListSchema,
   ConfigSchema,
+  DepsSchema,
   PromptEntrySchema,
   PromptListSchema,
   RunDetailSchema,
   RunListSchema,
   RunStartResponseSchema,
+  SettingsSchema,
   type ConfigDoc,
+  type Deps,
   type PromptEntry,
+  type Settings,
 } from "./schemas";
 import type { z } from "zod";
 
@@ -101,4 +105,28 @@ export async function recutVideo(runId: string, pptxFile: File): Promise<void> {
   }
 }
 
-export type { PromptEntry, ConfigDoc };
+export async function getSettings(): Promise<Settings> {
+  return request(SettingsSchema, "/api/settings");
+}
+
+export async function getDeps(): Promise<Deps> {
+  return request(DepsSchema, "/api/settings/deps");
+}
+
+export async function saveKeys(keys: Record<string, string>): Promise<void> {
+  const res = await fetch("/api/settings/keys", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(keys),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(
+      (body as Record<string, unknown>)?.error
+        ? String((body as Record<string, unknown>).error)
+        : `${res.status} ${res.statusText}`
+    );
+  }
+}
+
+export type { PromptEntry, ConfigDoc, Settings, Deps };

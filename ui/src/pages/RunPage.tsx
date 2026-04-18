@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { api } from "../lib/api";
+import { getSettings, getDeps } from "../lib/api";
 import CostConfirmModal from "../components/CostConfirmModal";
 import RunConsole from "../components/RunConsole";
 
@@ -14,8 +15,12 @@ export default function RunPage() {
 
 function RunForm() {
   const nav = useNavigate();
+  const qc = useQueryClient();
   const configsQ = useQuery({ queryKey: ["configs"], queryFn: api.listConfigs });
   const runsQ = useQuery({ queryKey: ["runs"], queryFn: api.listRuns });
+  const settingsQ = useQuery({ queryKey: ["settings"], queryFn: getSettings, staleTime: 60_000 });
+
+  const libreOfficeMissing = settingsQ.data?.deps.libreoffice === false;
 
   const [configName, setConfigName] = useState("default");
   const [output, setOutput] = useState("");
@@ -41,7 +46,7 @@ function RunForm() {
     },
   });
 
-  const canStart = !!configName;
+  const canStart = !!configName && !libreOfficeMissing;
 
   const activeRun = (runsQ.data ?? []).find((r) => r.status === "running");
 
@@ -56,6 +61,42 @@ function RunForm() {
           starting.
         </p>
       </div>
+
+      {libreOfficeMissing && settingsQ.data && (
+        <div className="rounded-md border border-red-700 bg-red-900/30 p-4 space-y-2">
+          <div className="text-red-300 font-semibold text-sm">
+            LibreOffice is required to generate videos.
+          </div>
+          <p className="text-red-200 text-sm">{settingsQ.data.libreOfficeInstallHint}</p>
+          <div className="flex items-center gap-3">
+            <a
+              href={settingsQ.data.libreOfficeInstallUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm underline text-red-300 hover:text-red-100"
+            >
+              Download LibreOffice
+            </a>
+            <button
+              className="text-sm px-3 py-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-200"
+              onClick={async () => {
+                try {
+                  const deps = await getDeps();
+                  qc.setQueryData(
+                    ["settings"],
+                    (prev: typeof settingsQ.data) => (prev ? { ...prev, deps } : prev)
+                  );
+                  toast.success("Dependencies re-checked");
+                } catch {
+                  toast.error("Re-check failed");
+                }
+              }}
+            >
+              Re-check
+            </button>
+          </div>
+        </div>
+      )}
 
       {activeRun && (
         <div className="rounded-md border border-indigo-700/60 bg-indigo-950/40 p-3 text-sm">
