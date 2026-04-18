@@ -32,6 +32,7 @@ function makeApp() {
     promptsDir: resolve(REPO_ROOT, "assets/prompts"),
     configsDir: tmpConfigs,
     runsDir: tmpRuns,
+    outputDir: resolve(tmpRuns, "output"),
   };
   const runManager = new RunManager({
     repoRoot: paths.repoRoot,
