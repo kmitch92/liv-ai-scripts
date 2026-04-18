@@ -79,6 +79,20 @@ export default function ConfigEditor({ name }: Props) {
   const phonetics = (get(doc, ["script", "phoneticsOverrides"]) as Phonetic[]) ?? [];
   const voiceId = (get(doc, ["elevenlabs", "voiceId"]) as string) ?? "";
   const modelId = (get(doc, ["elevenlabs", "modelId"]) as string) ?? "";
+  const stability = (get(doc, ["elevenlabs", "stability"]) as number) ?? 0.5;
+  const similarityBoost = (get(doc, ["elevenlabs", "similarityBoost"]) as number) ?? 0.75;
+  const style = (get(doc, ["elevenlabs", "style"]) as number) ?? 0;
+  const speed = (get(doc, ["elevenlabs", "speed"]) as number) ?? 1;
+  const useSpeakerBoost = (get(doc, ["elevenlabs", "useSpeakerBoost"]) as boolean) ?? true;
+
+  const systemPrompt = (get(doc, ["script", "systemPrompt"]) as string) ?? "";
+  const slideStructureNotes = (get(doc, ["script", "slideStructureNotes"]) as string) ?? "";
+
+  const useIterativeContent = (get(doc, ["pipeline", "useIterativeContent"]) as boolean) ?? false;
+  const enableCritic = (get(doc, ["pipeline", "enableCritic"]) as boolean) ?? false;
+  const enableDesignValidation = (get(doc, ["pipeline", "enableDesignValidation"]) as boolean) ?? false;
+  const useTemplateEngine = (get(doc, ["pipeline", "useTemplateEngine"]) as boolean) ?? false;
+  const enableImageQueryGeneration = (get(doc, ["pipeline", "enableImageQueryGeneration"]) as boolean) ?? false;
 
   const update = (path: string[], value: unknown) =>
     setDoc((prev) => (prev ? setPath(prev, path, value) : prev));
@@ -204,21 +218,126 @@ export default function ConfigEditor({ name }: Props) {
               />
             </Field>
 
+            <Field label="System Prompt">
+              <p className="text-xs text-slate-500 mb-1">
+                Top-level narration charter. Also editable on the Prompts page.
+              </p>
+              <textarea
+                className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-sm font-mono"
+                rows={12}
+                value={systemPrompt}
+                onChange={(e) => update(["script", "systemPrompt"], e.target.value)}
+              />
+            </Field>
+
+            <Field label="Slide Structure Notes">
+              <p className="text-xs text-slate-500 mb-1">
+                File path — edit content on the Prompts page
+              </p>
+              <input
+                className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-sm text-slate-400"
+                value={slideStructureNotes}
+                readOnly
+              />
+            </Field>
+
+            {/* ── ElevenLabs ────────────────────────────────────────── */}
+            <h3 className="text-sm font-semibold text-slate-300 pt-4 border-t border-slate-800">
+              ElevenLabs
+            </h3>
+
             <div className="grid grid-cols-2 gap-4">
-              <Field label="ElevenLabs voiceId">
+              <Field label="Voice ID">
                 <input
                   className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-sm"
                   value={voiceId}
                   onChange={(e) => update(["elevenlabs", "voiceId"], e.target.value)}
                 />
               </Field>
-              <Field label="ElevenLabs modelId">
+              <Field label="Model ID">
                 <input
                   className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-sm"
                   value={modelId}
                   onChange={(e) => update(["elevenlabs", "modelId"], e.target.value)}
                 />
               </Field>
+            </div>
+
+            <RangeField
+              label="Stability"
+              value={stability}
+              min={0}
+              max={1}
+              step={0.05}
+              onChange={(v) => update(["elevenlabs", "stability"], v)}
+            />
+            <RangeField
+              label="Similarity Boost"
+              value={similarityBoost}
+              min={0}
+              max={1}
+              step={0.05}
+              onChange={(v) => update(["elevenlabs", "similarityBoost"], v)}
+            />
+            <RangeField
+              label="Style"
+              value={style}
+              min={0}
+              max={1}
+              step={0.01}
+              onChange={(v) => update(["elevenlabs", "style"], v)}
+            />
+            <RangeField
+              label="Speed"
+              value={speed}
+              min={0.5}
+              max={2}
+              step={0.05}
+              onChange={(v) => update(["elevenlabs", "speed"], v)}
+            />
+
+            <Field label="Speaker Boost">
+              <label className="flex items-center gap-2 text-sm text-slate-300">
+                <input
+                  type="checkbox"
+                  checked={useSpeakerBoost}
+                  onChange={(e) => update(["elevenlabs", "useSpeakerBoost"], e.target.checked)}
+                />
+                Enhance clarity and presence
+              </label>
+            </Field>
+
+            {/* ── Pipeline ──────────────────────────────────────────── */}
+            <h3 className="text-sm font-semibold text-slate-300 pt-4 border-t border-slate-800">
+              Pipeline
+            </h3>
+
+            <div className="space-y-3">
+              <Toggle
+                label="Iterative content (multi-step narration → slides instead of single-shot)"
+                checked={useIterativeContent}
+                onChange={(v) => update(["pipeline", "useIterativeContent"], v)}
+              />
+              <Toggle
+                label="Critic pass (review slides for coverage gaps)"
+                checked={enableCritic}
+                onChange={(v) => update(["pipeline", "enableCritic"], v)}
+              />
+              <Toggle
+                label="Design validation (check slides against layout constraints)"
+                checked={enableDesignValidation}
+                onChange={(v) => update(["pipeline", "enableDesignValidation"], v)}
+              />
+              <Toggle
+                label="Template engine (use designer PPTX template)"
+                checked={useTemplateEngine}
+                onChange={(v) => update(["pipeline", "useTemplateEngine"], v)}
+              />
+              <Toggle
+                label="Image query refinement (LLM-refined Unsplash queries)"
+                checked={enableImageQueryGeneration}
+                onChange={(v) => update(["pipeline", "enableImageQueryGeneration"], v)}
+              />
             </div>
           </div>
         )}
@@ -305,6 +424,62 @@ function StringList({
         </button>
       </div>
     </div>
+  );
+}
+
+function RangeField({
+  label,
+  value,
+  min,
+  max,
+  step,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <Field label={label}>
+      <div className="flex items-center gap-3">
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="flex-1 accent-indigo-500"
+        />
+        <span className="w-12 text-right text-sm tabular-nums text-slate-300">
+          {value.toFixed(step < 0.1 ? 2 : 2)}
+        </span>
+      </div>
+    </Field>
+  );
+}
+
+function Toggle({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+      />
+      {label}
+    </label>
   );
 }
 
