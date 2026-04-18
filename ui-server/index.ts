@@ -5,6 +5,7 @@ import { validateRegistry } from "./prompt-registry.js";
 import { configsRoutes } from "./routes/configs.js";
 import { promptsRoutes } from "./routes/prompts.js";
 import { runsRoutes } from "./routes/runs.js";
+import { recutRoutes } from "./routes/recut.js";
 import { RunManager } from "./run-manager.js";
 
 export interface BuildOptions {
@@ -31,6 +32,7 @@ export async function buildServer(options: BuildOptions = {}): Promise<FastifyIn
   await promptsRoutes(app, paths);
   await configsRoutes(app, paths);
   await runsRoutes(app, paths, runs);
+  await recutRoutes(app, paths, runs);
 
   app.get("/api/health", async () => ({ ok: true }));
 

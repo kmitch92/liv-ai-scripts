@@ -11,5 +11,5 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["**/*.ts", "../src/schemas/**/*.ts"]
+  "include": ["**/*.ts", "../src/schemas/**/*.ts", "../src/lib/recut.ts", "../src/steps/06-video-assemble.ts", "../src/types/index.ts"]
 }
