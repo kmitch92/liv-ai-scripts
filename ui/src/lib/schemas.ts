@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const PromptSourceSchema = z.union([
-  z.object({ kind: z.literal("config"), path: z.string() }),
+  z.object({ kind: z.literal("config"), jsonPath: z.string() }),
   z.object({ kind: z.literal("file"), relPath: z.string() }),
 ]);
 

@@ -33,7 +33,7 @@ export default function PromptEditor({ prompt, configName }: Props) {
 
   const sourceLabel =
     prompt.source.kind === "config"
-      ? `config.${prompt.source.path}`
+      ? `config.${prompt.source.jsonPath}`
       : prompt.source.relPath;
 
   return (
