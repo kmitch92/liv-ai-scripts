@@ -1,5 +1,6 @@
 import { dirname, join, basename } from "node:path";
 import { access } from "node:fs/promises";
+import sharp from "sharp";
 import PptxAutomizer from "pptx-automizer";
 import type { ISlide, ShapeModificationCallback } from "pptx-automizer";
 import type {
@@ -255,6 +256,15 @@ export async function generatePptxV2(
     }
   }
 
+  // Generate a 1x1 transparent PNG as fallback for missing images
+  const fallbackFilename = "transparent-1x1.png";
+  await sharp({
+    create: { width: 1, height: 1, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
+  })
+    .png()
+    .toFile(join(tempDir, fallbackFilename));
+  automizer.loadMedia(fallbackFilename, tempDir);
+
   // Add slides
   for (let i = 0; i < presentation.slides.length; i++) {
     const slideData = presentation.slides[i];
@@ -273,8 +283,8 @@ export async function generatePptxV2(
       const imagePlaceholder = layout.placeholders.find(
         (p) => p.type === "image",
       );
-      const imageFilename = loadedImages.get(i);
-      if (imagePlaceholder && imageFilename) {
+      if (imagePlaceholder) {
+        const imageFilename = loadedImages.get(i) ?? fallbackFilename;
         try {
           addedSlide.modifyElement(
             imagePlaceholder.name,
