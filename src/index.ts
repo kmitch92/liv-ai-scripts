@@ -72,7 +72,7 @@ async function main(): Promise<void> {
   program
     .name("liv-ai")
     .description("Generate teaching materials (PPTX + video) from a topic and config")
-    .requiredOption("-t, --topic <topic>", "Topic to generate materials for")
+    .option("-t, --topic <topic>", "Topic to generate materials for (overrides config)")
     .requiredOption("-c, --config <path>", "Path to config JSON file")
     .option("-o, --output <path>", "Output path for the archive");
 
@@ -101,6 +101,12 @@ async function main(): Promise<void> {
     throw new Error(`Invalid JSON in config file: ${configPath}`);
   }
   const config = ConfigSchema.parse(configJson);
+
+  // Resolve topic: CLI flag takes precedence over config.
+  // config.script.topic is required by schema, but the CLI flag can override it.
+  if (!args.topic && !config.script.topic) {
+    throw new Error("Topic must be provided via --topic flag or config.script.topic");
+  }
 
   // Validate context files exist
   for (const ctxFile of config.script.contextFiles) {

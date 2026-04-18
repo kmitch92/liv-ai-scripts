@@ -11,7 +11,7 @@ beforeEach(() => {
   tmpRuns = mkdtempSync(resolve(tmpdir(), "livai-rm-runs-"));
   tmpConfigs = mkdtempSync(resolve(tmpdir(), "livai-rm-cfgs-"));
   // Seed a fake config so RunManager.start() can snapshot it.
-  writeFileSync(resolve(tmpConfigs, "default.json"), "{}", "utf8");
+  writeFileSync(resolve(tmpConfigs, "default.json"), JSON.stringify({ script: { topic: "test topic" } }), "utf8");
 });
 
 afterEach(() => {

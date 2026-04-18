@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { spawn } from "node:child_process";
-import { createReadStream, existsSync } from "node:fs";
+import { createReadStream, existsSync, readFileSync } from "node:fs";
 import { basename, resolve } from "node:path";
 import { z } from "zod";
 import type { Paths } from "../paths.js";
@@ -9,7 +9,6 @@ import type { RunManager } from "../run-manager.js";
 export async function runsRoutes(app: FastifyInstance, paths: Paths, runs: RunManager) {
   const PostBody = z.object({
     configName: z.string().min(1),
-    topic: z.string().min(1),
     output: z.string().optional(),
   });
 
@@ -18,9 +17,22 @@ export async function runsRoutes(app: FastifyInstance, paths: Paths, runs: RunMa
     if (!parsed.success) {
       return reply.code(400).send({ error: "Invalid body", details: parsed.error.flatten() });
     }
-    const { configName, topic, output } = parsed.data;
-    const cfg = resolve(paths.configsDir, `${configName}.json`);
-    if (!existsSync(cfg)) return reply.code(400).send({ error: `Config preset not found: ${configName}` });
+    const { configName, output } = parsed.data;
+    const cfgPath = resolve(paths.configsDir, `${configName}.json`);
+    if (!existsSync(cfgPath)) return reply.code(400).send({ error: `Config preset not found: ${configName}` });
+
+    // Read topic from config preset
+    let topic: string;
+    try {
+      const cfgJson = JSON.parse(readFileSync(cfgPath, "utf8"));
+      topic = cfgJson?.script?.topic;
+      if (!topic || typeof topic !== "string") {
+        return reply.code(400).send({ error: `Config preset "${configName}" is missing script.topic` });
+      }
+    } catch {
+      return reply.code(400).send({ error: `Failed to read config preset: ${configName}` });
+    }
+
     if (runs.isActive()) {
       return reply.code(409).send({ error: "A run is already active", activeRunId: runs.activeRunId() });
     }

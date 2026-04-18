@@ -40,6 +40,7 @@ function makeConfig(overrides?: {
       useSpeakerBoost: true,
     },
     script: {
+      topic: "Test Topic",
       speakerIdentity: "tutor",
       targetAudience: "students",
       systemPrompt: "teach",

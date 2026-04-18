@@ -27,6 +27,7 @@ export const ConfigSchema = z.object({
     useSpeakerBoost: z.boolean().default(true).describe("Enhances clarity and presence of the speaker voice."),
   }),
   script: z.object({
+    topic: z.string().describe("Subject/topic for the presentation, e.g. 'Ozymandias by Percy Bysshe Shelley'"),
     speakerIdentity: z.string().describe("Who the speaker is, e.g. 'an expert GCSE English Literature teacher'"),
     targetAudience: z.string().describe("Who the presentation is for, e.g. 'GCSE students aged 14-16' or 'senior software engineers'"),
     systemPrompt: z.string().describe("Purpose/style of the presentation"),

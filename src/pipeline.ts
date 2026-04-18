@@ -32,6 +32,7 @@ interface PipelineOptions {
 
 export async function runPipeline(options: PipelineOptions): Promise<string> {
   const { args, config } = options;
+  const topic = args.topic ?? config.script.topic;
   const startTime = Date.now();
 
   const { path: tempDir, cleanup } = await createTempDir();
@@ -68,7 +69,7 @@ export async function runPipeline(options: PipelineOptions): Promise<string> {
       // 2a. Generate narration script
       try {
         narrationScript = await generateNarration({
-          topic: args.topic,
+          topic,
           contextText,
           speakerIdentity: config.script.speakerIdentity,
           targetAudience: config.script.targetAudience,
@@ -110,7 +111,7 @@ export async function runPipeline(options: PipelineOptions): Promise<string> {
       // Legacy path: single-shot script generation
       try {
         presentation = await generateScript({
-          topic: args.topic,
+          topic,
           contextText,
           speakerIdentity: config.script.speakerIdentity,
           targetAudience: config.script.targetAudience,
@@ -156,7 +157,7 @@ export async function runPipeline(options: PipelineOptions): Promise<string> {
         slides: presentation.slides,
         tempDir,
         brandColors: config.branding.colors,
-        topic: args.topic,
+        topic,
         templateManifest,
       });
     } catch (err) {
@@ -266,7 +267,7 @@ export async function runPipeline(options: PipelineOptions): Promise<string> {
         videoPath,
         silentVideoPath,
         audioPaths,
-        topic: args.topic,
+        topic,
         outputPath: args.output,
       });
     } catch (err) {
