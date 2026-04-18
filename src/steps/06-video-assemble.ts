@@ -96,7 +96,7 @@ async function isPdftoppmAvailable(): Promise<boolean> {
 // Slide image generation orchestrator
 // ---------------------------------------------------------------------------
 
-async function generateSlideImages(
+export async function generateSlideImages(
   pptxPath: string,
   imagePaths: string[],
   presentation: Presentation,
@@ -133,7 +133,7 @@ async function generateSlideImages(
 // LibreOffice PPTX -> PDF -> pdftoppm pipeline
 // ---------------------------------------------------------------------------
 
-async function generateWithLibreOffice(
+export async function generateWithLibreOffice(
   pptxPath: string,
   outputDir: string,
   expectedCount: number,
@@ -630,7 +630,7 @@ function buildKeyPointSvg(slide: Slide, config: Config): string {
 // Audio concatenation (unchanged)
 // ---------------------------------------------------------------------------
 
-async function concatenateAudio(
+export async function concatenateAudio(
   audioPaths: string[],
   outputPath: string,
   workDir: string,
@@ -694,7 +694,7 @@ async function concatenateAudio(
 // FFmpeg concat file + video render (unchanged)
 // ---------------------------------------------------------------------------
 
-async function writeConcatFile(
+export async function writeConcatFile(
   concatFilePath: string,
   slideImages: string[],
   durations: number[],
@@ -715,7 +715,7 @@ async function writeConcatFile(
   await writeFile(concatFilePath, lines.join("\n"), "utf-8");
 }
 
-async function runFfmpeg(
+export async function runFfmpeg(
   concatFile: string,
   audioPath: string,
   outputPath: string,
