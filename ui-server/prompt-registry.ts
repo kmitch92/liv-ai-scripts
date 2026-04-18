@@ -49,22 +49,6 @@ export const PROMPT_REGISTRY: PromptMeta[] = [
     source: { kind: "file", relPath: "assets/prompts/powerpoint-notes.txt" },
   },
   {
-    id: "system-prompt-legacy",
-    label: "Legacy system prompt",
-    purpose:
-      "Legacy top-level system prompt. Currently unreferenced by the pipeline but kept for experimentation.",
-    pipelineStep: "legacy",
-    source: { kind: "file", relPath: "assets/prompts/system-prompt.txt" },
-  },
-  {
-    id: "02-script-generate",
-    label: "02 — Legacy single-shot script generator",
-    purpose:
-      "Legacy single-shot script generator. Used only when `pipeline.useIterativeContent=false`. Produces an entire Presentation (slides + narration) in one LLM call.",
-    pipelineStep: "02",
-    source: { kind: "file", relPath: "assets/prompts/02-script-generate.md" },
-  },
-  {
     id: "02a-narration-generate",
     label: "02a — Narration generator",
     purpose:
