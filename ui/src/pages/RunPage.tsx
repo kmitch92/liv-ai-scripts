@@ -18,7 +18,6 @@ function RunForm() {
   const runsQ = useQuery({ queryKey: ["runs"], queryFn: api.listRuns });
 
   const [configName, setConfigName] = useState("default");
-  const [topic, setTopic] = useState("");
   const [output, setOutput] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -26,7 +25,6 @@ function RunForm() {
     mutationFn: () =>
       api.startRun({
         configName,
-        topic: topic.trim(),
         output: output.trim() || undefined,
       }),
     onSuccess: (r) => {
@@ -43,7 +41,7 @@ function RunForm() {
     },
   });
 
-  const canStart = !!topic.trim() && !!configName;
+  const canStart = !!configName;
 
   const activeRun = (runsQ.data ?? []).find((r) => r.status === "running");
 
@@ -88,18 +86,6 @@ function RunForm() {
 
         <div>
           <label className="block text-xs uppercase tracking-wider text-slate-400 font-semibold mb-1.5">
-            Topic *
-          </label>
-          <input
-            className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-sm"
-            placeholder="e.g. Macbeth — Act 1 themes"
-            value={topic}
-            onChange={(e) => setTopic(e.target.value)}
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs uppercase tracking-wider text-slate-400 font-semibold mb-1.5">
             Output path (optional)
           </label>
           <input
@@ -123,7 +109,6 @@ function RunForm() {
 
       {showConfirm && (
         <CostConfirmModal
-          topic={topic.trim()}
           configName={configName}
           onCancel={() => setShowConfirm(false)}
           onConfirm={() => start.mutate()}

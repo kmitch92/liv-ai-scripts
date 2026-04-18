@@ -1,7 +1,6 @@
 import { useState } from "react";
 
 interface Props {
-  topic: string;
   configName: string;
   onCancel: () => void;
   onConfirm: () => void;
@@ -9,7 +8,6 @@ interface Props {
 }
 
 export default function CostConfirmModal({
-  topic,
   configName,
   onCancel,
   onConfirm,
@@ -37,9 +35,6 @@ export default function CostConfirmModal({
           <div className="bg-slate-950/60 border border-slate-700 rounded p-3 font-mono text-xs space-y-1">
             <div>
               <span className="text-slate-500">preset:</span> {configName}
-            </div>
-            <div>
-              <span className="text-slate-500">topic:</span> {topic}
             </div>
           </div>
           <p className="text-slate-300">

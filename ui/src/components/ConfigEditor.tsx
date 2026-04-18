@@ -72,6 +72,7 @@ export default function ConfigEditor({ name }: Props) {
   if (q.isError) return <div className="p-6 text-red-400">{(q.error as Error).message}</div>;
   if (!doc) return null;
 
+  const topic = (get(doc, ["script", "topic"]) as string) ?? "";
   const speakerIdentity = (get(doc, ["script", "speakerIdentity"]) as string) ?? "";
   const targetAudience = (get(doc, ["script", "targetAudience"]) as string) ?? "";
   const durationMinutes = (get(doc, ["script", "durationMinutes"]) as number) ?? 15;
@@ -176,6 +177,14 @@ export default function ConfigEditor({ name }: Props) {
           </div>
         ) : (
           <div className="p-6 space-y-6 max-w-3xl">
+            <Field label="Topic *">
+              <input
+                className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-sm"
+                placeholder="e.g. Ozymandias by Percy Bysshe Shelley"
+                value={topic}
+                onChange={(e) => update(["script", "topic"], e.target.value)}
+              />
+            </Field>
             <Field label="Speaker identity">
               <textarea
                 className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-sm"

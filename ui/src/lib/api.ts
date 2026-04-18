@@ -73,7 +73,7 @@ export const api = {
 
   listRuns: () => request(RunListSchema, "/api/runs"),
   getRun: (id: string) => request(RunDetailSchema, `/api/runs/${encodeURIComponent(id)}`),
-  startRun: (body: { configName: string; topic: string; output?: string }) =>
+  startRun: (body: { configName: string; output?: string }) =>
     request(RunStartResponseSchema, "/api/runs", {
       method: "POST",
       body: JSON.stringify(body),
