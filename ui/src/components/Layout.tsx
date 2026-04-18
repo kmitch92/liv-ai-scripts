@@ -1,4 +1,6 @@
 import { NavLink, Outlet } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "../lib/api";
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
   [
@@ -9,6 +11,15 @@ const navClass = ({ isActive }: { isActive: boolean }) =>
   ].join(" ");
 
 export default function Layout() {
+  const { data: runs } = useQuery({
+    queryKey: ["runs"],
+    queryFn: () => api.listRuns(),
+    refetchInterval: 30_000,
+  });
+
+  const activeRun = runs?.find((r) => r.status === "running");
+  const runLink = activeRun ? `/run/${activeRun.id}` : "/run";
+
   return (
     <div className="h-full flex flex-col">
       <header className="border-b border-slate-800 bg-slate-900">
@@ -23,8 +34,16 @@ export default function Layout() {
             <NavLink to="/configs" className={navClass}>
               Configs
             </NavLink>
-            <NavLink to="/run" className={navClass}>
-              Run
+            <NavLink to={runLink} className={navClass}>
+              <span className="flex items-center gap-2">
+                Run
+                {activeRun && (
+                  <>
+                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                    <span className="text-green-400 text-xs">Running…</span>
+                  </>
+                )}
+              </span>
             </NavLink>
           </nav>
         </div>
