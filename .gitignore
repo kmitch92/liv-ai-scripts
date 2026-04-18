@@ -9,3 +9,8 @@ runs/
 *.mp4
 *.m4a
 !configs/
+dist-electron/
+electron/dist/
+build/
+*.AppImage
+*.exe

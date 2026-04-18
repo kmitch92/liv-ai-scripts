@@ -1,0 +1,42 @@
+appId: com.liv-ai.scripts
+productName: LivAI Scripts
+copyright: Copyright © 2026
+
+directories:
+  output: dist-electron
+  buildResources: build
+
+files:
+  - electron/dist/**
+  - ui-server/**
+  - ui/dist/**
+  - src/**
+  - assets/**
+  - configs/**
+  - node_modules/**
+  - package.json
+  - "!**/*.ts"
+  - "!**/*.test.*"
+  - "!**/__tests__/**"
+  - "!**/node_modules/.cache/**"
+  - "!ui/src/**"
+  - "!ui/node_modules/**"
+
+extraFiles:
+  - from: ui/dist
+    to: ui/dist
+
+linux:
+  target:
+    - AppImage
+  category: Education
+
+win:
+  target:
+    - nsis
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+
+asar: true

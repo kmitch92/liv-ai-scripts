@@ -16,7 +16,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "electron:compile": "tsc -p electron/tsconfig.json",
-    "electron:dev": "concurrently \"npm:ui:server\" \"npm:ui:web\" \"wait-on http://localhost:4317 && electron .\"",
+    "electron:dev": "npm run electron:compile && concurrently -k -n server,web,electron -c cyan,magenta,yellow \"npm:ui:server\" \"npm:ui:web\" \"wait-on http://localhost:4317 && electron .\"",
+    "electron:build": "npm run ui:build && npm run electron:compile && electron-builder",
+    "electron:pack": "npm run ui:build && npm run electron:compile && electron-builder --dir",
     "typecheck": "tsc --noEmit",
     "postinstall": "node scripts/check-deps.js",
     "setup": "bash scripts/setup.sh"
@@ -50,8 +52,10 @@
     "@types/pdf-parse": "^1.1.4",
     "concurrently": "^9.2.1",
     "electron": "^41.2.1",
+    "electron-builder": "^26.8.1",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",
-    "vitest": "^3.0.0"
+    "vitest": "^3.0.0",
+    "wait-on": "^9.0.5"
   }
 }
