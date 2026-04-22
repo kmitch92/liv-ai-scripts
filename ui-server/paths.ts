@@ -2,11 +2,20 @@ import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
 import os from "node:os";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+function deriveDefaultAppRoot(): string {
+  if (process.env.LIVAI_APP_ROOT) {
+    return resolve(process.env.LIVAI_APP_ROOT);
+  }
+  // Dev mode only (ESM via tsx). In packaged CJS builds the env var
+  // must be set by Electron main; this branch is never executed there.
+  const here = dirname(fileURLToPath(import.meta.url));
+  return resolve(here, "..");
+}
 
 // Default app root: repo root is one level up from ui-server/.
-let _appRoot = resolve(__dirname, "..");
+// In the packaged Electron build the bundle lives one directory deeper
+// (ui-server/dist/index.cjs) so prefer LIVAI_APP_ROOT when set.
+let _appRoot = deriveDefaultAppRoot();
 let _outputDir: string | undefined;
 
 /** Override the application root directory (e.g. from Electron). */
@@ -34,7 +43,7 @@ export function getOutputDir(): string {
  * Prefer `getAppRoot()` for code that may run after `setAppRoot()`.
  * This value reflects the initial default and is NOT updated by `setAppRoot()`.
  */
-export const REPO_ROOT = resolve(__dirname, "..");
+export const REPO_ROOT = deriveDefaultAppRoot();
 
 export interface Paths {
   repoRoot: string;
