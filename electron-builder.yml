@@ -8,7 +8,7 @@ directories:
 
 files:
   - electron/dist/**
-  - ui-server/**
+  - ui-server/dist/**
   - ui/dist/**
   - src/**
   - assets/**
@@ -25,6 +25,10 @@ files:
 extraFiles:
   - from: ui/dist
     to: ui/dist
+
+asarUnpack:
+  - node_modules/sharp/**
+  - node_modules/@img/**
 
 linux:
   target:
