@@ -10,7 +10,7 @@ files:
   - electron/dist/**
   - ui-server/dist/**
   - ui/dist/**
-  - src/**
+  - src/dist/**
   - assets/**
   - configs/**
   - node_modules/**

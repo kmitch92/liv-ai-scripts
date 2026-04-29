@@ -1,21 +1,54 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
 import { spawn, execFileSync, type ChildProcess } from "child_process";
 import * as path from "path";
+import { existsSync, mkdirSync, readdirSync, copyFileSync } from "fs";
 import { loadApiKeys, saveApiKeys, getKeyStatus, getOutputPath, setOutputPath } from "./store";
 import { checkDependencies } from "./deps";
 
 let mainWindow: BrowserWindow | null = null;
 let serverProcess: ChildProcess | null = null;
 
+const APP_ROOT = path.resolve(__dirname, "..");
+
+function seedUserData(): { configsDir: string; runsDir: string } {
+  const userData = app.getPath("userData");
+  const configsDir = path.join(userData, "configs");
+  const runsDir = path.join(userData, "runs");
+
+  mkdirSync(configsDir, { recursive: true });
+  mkdirSync(runsDir, { recursive: true });
+
+  // First-run seed: if userData configs dir is empty, copy bundled defaults.
+  const existing = readdirSync(configsDir).filter((f) => f.endsWith(".json"));
+  if (existing.length === 0) {
+    const bundledConfigsDir = path.join(APP_ROOT, "configs");
+    if (existsSync(bundledConfigsDir)) {
+      for (const file of readdirSync(bundledConfigsDir)) {
+        if (!file.endsWith(".json")) continue;
+        copyFileSync(
+          path.join(bundledConfigsDir, file),
+          path.join(configsDir, file),
+        );
+      }
+    }
+  }
+
+  return { configsDir, runsDir };
+}
+
 /** Spawn the ESM ui-server as a child process and wait for it to report its URL. */
 function spawnServer(): Promise<string> {
   return new Promise<string>((resolve, reject) => {
     const keys = loadApiKeys();
+    const { configsDir, runsDir } = seedUserData();
     const env: Record<string, string> = {
       ...process.env as Record<string, string>,
       UI_SERVER_PORT: "0",
       ELECTRON_RUN_AS_NODE: "1",
-      LIVAI_APP_ROOT: path.resolve(__dirname, ".."),
+      LIVAI_APP_ROOT: APP_ROOT,
+      LIVAI_CONFIGS_DIR: configsDir,
+      LIVAI_RUNS_DIR: runsDir,
+      LIVAI_PIPELINE_BUNDLE: path.join(APP_ROOT, "src", "dist", "index.cjs"),
     };
 
     // Inject stored API keys into the child env.
