@@ -2,11 +2,18 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+function deriveRepoRoot(): string {
+  if (process.env.LIVAI_APP_ROOT) {
+    return resolve(process.env.LIVAI_APP_ROOT);
+  }
+  // Dev mode (ESM via tsx). In packaged CJS builds the env var is set
+  // by Electron main; this branch is never executed there.
+  const here = dirname(fileURLToPath(import.meta.url));
+  // src/lib/prompts.ts → repo root is two levels up.
+  return resolve(here, "..", "..");
+}
 
-// src/lib/prompts.ts → repo root is two levels up.
-const REPO_ROOT = resolve(__dirname, "..", "..");
+const REPO_ROOT = deriveRepoRoot();
 const PROMPTS_DIR = resolve(REPO_ROOT, "assets", "prompts");
 
 const cache = new Map<string, string>();
