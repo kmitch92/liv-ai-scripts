@@ -247,16 +247,16 @@ function defaultBuildCommand(args: {
   output?: string;
   configsDir: string;
 }): { cmd: string; args: string[] } {
-  const cliArgs = [
-    "tsx",
-    "src/index.ts",
-    "-t",
-    args.topic,
-    "-c",
-    resolve(args.configsDir, `${args.configName}.json`),
-  ];
-  if (args.output) cliArgs.push("-o", args.output);
-  return { cmd: "npx", args: cliArgs };
+  const userArgs = ["-t", args.topic, "-c", resolve(args.configsDir, `${args.configName}.json`)];
+  if (args.output) userArgs.push("-o", args.output);
+
+  const bundle = process.env.LIVAI_PIPELINE_BUNDLE;
+  if (bundle) {
+    // Packaged Electron: run the bundle with the current Node binary
+    // (which is Electron itself with ELECTRON_RUN_AS_NODE=1 inherited from parent env).
+    return { cmd: process.execPath, args: [bundle, ...userArgs] };
+  }
+  return { cmd: "npx", args: ["tsx", "src/index.ts", ...userArgs] };
 }
 
 function readLogAsEvents(logPath: string): RunEvent[] {
